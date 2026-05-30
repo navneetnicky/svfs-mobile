@@ -12,7 +12,7 @@ import {
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLogin } from '@hooks/useLogin'
 import { loginSchema, type LoginFormData } from '@/src/lib/schemas'
 
@@ -27,6 +27,7 @@ export default function LoginScreen() {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
   })
 
   const onSubmit = (data: LoginFormData) => login(data)
@@ -43,7 +44,7 @@ export default function LoginScreen() {
         {/* Header */}
         <View className="mb-8 items-center">
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl bg-blue-600">
-            <Ionicons name="cube-outline" size={32} color="white" />
+            <MaterialCommunityIcons name="truck-delivery-outline" size={34} color="white" />
           </View>
           <Text className="text-2xl font-bold text-black dark:text-white">
             Login to your account

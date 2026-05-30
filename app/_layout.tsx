@@ -1,6 +1,7 @@
 import "../global.css";
-import { useEffect } from 'react'
-import { Platform } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Platform, View, Text, Animated, Dimensions } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Stack, Redirect } from 'expo-router'
 import { Provider } from 'react-redux'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -11,6 +12,7 @@ import * as SecureStore from 'expo-secure-store'
 import 'react-native-reanimated'
 
 import { store } from '@/src/store'
+
 import { hydrateAuth } from '@/src/store/authSlice'
 import { useAppSelector } from '@/src/store/hooks'
 import { useColorScheme } from '@/components/useColorScheme'
@@ -23,7 +25,7 @@ const queryClient = new QueryClient()
 export { ErrorBoundary } from 'expo-router'
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: '(app)',
 }
 
 export default function RootLayout() {
@@ -67,24 +69,101 @@ export default function RootLayout() {
   )
 }
 
+const SCREEN_WIDTH = Dimensions.get('window').width
+const SPLASH_MIN_MS = 2800
+
+function JSSplashScreen() {
+  const truckX   = useRef(new Animated.Value(-120)).current
+  const titleY   = useRef(new Animated.Value(20)).current
+  const titleOp  = useRef(new Animated.Value(0)).current
+  const roadOp   = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    // Road + title fade in
+    Animated.parallel([
+      Animated.timing(roadOp,  { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(titleOp, { toValue: 1, duration: 500, delay: 200, useNativeDriver: true }),
+      Animated.timing(titleY,  { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
+    ]).start()
+
+    // Truck drives across, loops
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(truckX, {
+          toValue: SCREEN_WIDTH + 120,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(truckX, {
+          toValue: -120,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
+  }, [])
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' }}>
+
+      {/* Title */}
+      <Animated.View style={{ alignItems: 'center', marginBottom: 80, opacity: titleOp, transform: [{ translateY: titleY }] }}>
+        <Text style={{ fontSize: 42, fontWeight: '900', color: 'white', letterSpacing: 2 }}>SVFS</Text>
+        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', letterSpacing: 1, marginTop: 6 }}>
+          Smart Vehicle Freight System
+        </Text>
+      </Animated.View>
+
+      {/* Road + truck */}
+      <Animated.View style={{ position: 'absolute', bottom: 160, left: 0, right: 0, opacity: roadOp }}>
+        {/* Dashed road line */}
+        <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.15)', marginBottom: 0 }} />
+        <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 0, marginTop: 8 }}>
+          {Array.from({ length: 14 }).map((_, i) => (
+            <View key={i} style={{ height: 3, flex: 1, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2 }} />
+          ))}
+        </View>
+        <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 8 }} />
+
+        {/* Truck on the road */}
+        <Animated.View style={{ position: 'absolute', top: -28, transform: [{ translateX: truckX }] }}>
+          <MaterialCommunityIcons name="truck-delivery" size={52} color="white" />
+        </Animated.View>
+      </Animated.View>
+
+      {/* Loading label */}
+      <Animated.View style={{ position: 'absolute', bottom: 100, opacity: roadOp }}>
+        <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>Loading...</Text>
+      </Animated.View>
+
+    </View>
+  )
+}
+
 function AppNavigator() {
   const colorScheme = useColorScheme()
   const { token, isHydrating } = useAppSelector((s) => s.auth)
+  const [minTimeDone, setMinTimeDone] = useState(false)
 
-  // Keep splash screen visible while reading SecureStore
+  // Enforce minimum splash duration so the animation is always visible
   useEffect(() => {
-    if (!isHydrating) {
-      SplashScreen.hideAsync()
-    }
-  }, [isHydrating])
+    const t = setTimeout(() => setMinTimeDone(true), SPLASH_MIN_MS)
+    return () => clearTimeout(t)
+  }, [])
 
-  if (isHydrating) return null
+  const showingSplash = isHydrating || !minTimeDone
+
+  useEffect(() => {
+    if (!showingSplash) SplashScreen.hideAsync()
+  }, [showingSplash])
+
+  if (showingSplash) return <JSSplashScreen />
 
   return (
     <GluestackUIProvider mode={colorScheme === 'dark' ? 'dark' : 'light'}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(app)" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="+not-found" />
         </Stack>

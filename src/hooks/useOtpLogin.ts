@@ -19,7 +19,7 @@ export function useVerifyOtp() {
       authService.verifyOtp({ phone, otp }),
     onSuccess: (data) => {
       dispatch(setCredentials(data))
-      router.replace('/(tabs)')
+      router.replace('/(app)/dashboard')
     },
   })
 }
