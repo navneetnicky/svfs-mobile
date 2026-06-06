@@ -1,63 +1,174 @@
 import "../global.css";
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { useEffect, useRef, useState } from 'react'
+import { Platform, View, Text, Animated, Dimensions } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { Stack, Redirect } from 'expo-router'
+import { Provider } from 'react-redux'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native'
+import { useFonts } from 'expo-font'
+import * as SplashScreen from 'expo-splash-screen'
+import * as SecureStore from 'expo-secure-store'
+import 'react-native-reanimated'
 
-import { useColorScheme } from '@/components/useColorScheme';
-import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider';
+import { store } from '@/src/store'
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+import { hydrateAuth } from '@/src/store/authSlice'
+import { useAppSelector } from '@/src/store/hooks'
+import { useColorScheme } from '@/components/useColorScheme'
+import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider'
+
+SplashScreen.preventAutoHideAsync()
+
+const queryClient = new QueryClient()
+
+export { ErrorBoundary } from 'expo-router'
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+  initialRouteName: '(app)',
+}
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+  })
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (error) throw error
+  }, [error])
+
+  // Hydrate auth — localStorage on web, SecureStore on native
+  useEffect(() => {
+    async function hydrate() {
+      let token: string | null = null
+      let userRaw: string | null = null
+      if (Platform.OS === 'web') {
+        token = localStorage.getItem('token')
+        userRaw = localStorage.getItem('user')
+      } else {
+        token = await SecureStore.getItemAsync('token')
+        userRaw = await SecureStore.getItemAsync('user')
+      }
+      if (token && userRaw) {
+        store.dispatch(hydrateAuth({ token, user: JSON.parse(userRaw) }))
+      } else {
+        store.dispatch(hydrateAuth(null))
+      }
     }
-  }, [loaded]);
+    hydrate()
+  }, [])
 
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) return null
 
-  return <RootLayoutNav />;
+  return (
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <AppNavigator />
+      </QueryClientProvider>
+    </Provider>
+  )
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+const SCREEN_WIDTH = Dimensions.get('window').width
+const SPLASH_MIN_MS = 2800
+
+function JSSplashScreen() {
+  const truckX   = useRef(new Animated.Value(-120)).current
+  const titleY   = useRef(new Animated.Value(20)).current
+  const titleOp  = useRef(new Animated.Value(0)).current
+  const roadOp   = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    // Road + title fade in
+    Animated.parallel([
+      Animated.timing(roadOp,  { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(titleOp, { toValue: 1, duration: 500, delay: 200, useNativeDriver: true }),
+      Animated.timing(titleY,  { toValue: 0, duration: 500, delay: 200, useNativeDriver: true }),
+    ]).start()
+
+    // Truck drives across, loops
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(truckX, {
+          toValue: SCREEN_WIDTH + 120,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(truckX, {
+          toValue: -120,
+          duration: 0,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
+  }, [])
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#1d4ed8', alignItems: 'center', justifyContent: 'center' }}>
+
+      {/* Title */}
+      <Animated.View style={{ alignItems: 'center', marginBottom: 80, opacity: titleOp, transform: [{ translateY: titleY }] }}>
+        <Text style={{ fontSize: 42, fontWeight: '900', color: 'white', letterSpacing: 2 }}>SVFS</Text>
+        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', letterSpacing: 1, marginTop: 6 }}>
+          Smart Vehicle Freight System
+        </Text>
+      </Animated.View>
+
+      {/* Road + truck */}
+      <Animated.View style={{ position: 'absolute', bottom: 160, left: 0, right: 0, opacity: roadOp }}>
+        {/* Dashed road line */}
+        <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.15)', marginBottom: 0 }} />
+        <View style={{ flexDirection: 'row', gap: 12, paddingHorizontal: 0, marginTop: 8 }}>
+          {Array.from({ length: 14 }).map((_, i) => (
+            <View key={i} style={{ height: 3, flex: 1, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2 }} />
+          ))}
+        </View>
+        <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 8 }} />
+
+        {/* Truck on the road */}
+        <Animated.View style={{ position: 'absolute', top: -28, transform: [{ translateX: truckX }] }}>
+          <MaterialCommunityIcons name="truck-delivery" size={52} color="white" />
+        </Animated.View>
+      </Animated.View>
+
+      {/* Loading label */}
+      <Animated.View style={{ position: 'absolute', bottom: 100, opacity: roadOp }}>
+        <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>Loading...</Text>
+      </Animated.View>
+
+    </View>
+  )
+}
+
+function AppNavigator() {
+  const colorScheme = useColorScheme()
+  const { token, isHydrating } = useAppSelector((s) => s.auth)
+  const [minTimeDone, setMinTimeDone] = useState(false)
+
+  // Enforce minimum splash duration so the animation is always visible
+  useEffect(() => {
+    const t = setTimeout(() => setMinTimeDone(true), SPLASH_MIN_MS)
+    return () => clearTimeout(t)
+  }, [])
+
+  const showingSplash = isHydrating || !minTimeDone
+
+  useEffect(() => {
+    if (!showingSplash) SplashScreen.hideAsync()
+  }, [showingSplash])
+
+  if (showingSplash) return <JSSplashScreen />
 
   return (
     <GluestackUIProvider mode={colorScheme === 'dark' ? 'dark' : 'light'}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(app)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="+not-found" />
         </Stack>
+        {!token && <Redirect href="/(auth)/login" />}
       </ThemeProvider>
     </GluestackUIProvider>
-  );
+  )
 }
