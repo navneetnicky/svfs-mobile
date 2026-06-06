@@ -1,8 +1,12 @@
 import axios from 'axios'
 import { router } from 'expo-router'
 
-// Use 10.0.2.2 for Android emulator, localhost for iOS simulator and physical device via Expo Go
-const BASE_URL = 'http://localhost:3000/api'
+// localhost only works in browser/simulator.
+// For physical device via Expo Go, use your machine's local IP (e.g. http://192.168.1.5:3000/api).
+// Run `ipconfig getifaddr en0` on Mac to find your IP.
+const BASE_URL = __DEV__
+  ? 'http://192.168.124.248:3000/api'
+  : 'https://your-production-api.com/api'
 
 const api = axios.create({
   baseURL: BASE_URL,

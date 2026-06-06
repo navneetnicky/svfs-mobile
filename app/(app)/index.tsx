@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  Appearance, Platform, View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, Modal, Pressable,
 } from 'react-native'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
@@ -9,6 +9,8 @@ import { useRouter } from 'expo-router'
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks'
 import { logout } from '@/src/store/authSlice'
 import { setTheme } from '@/src/store/themeSlice'
+import { setActiveBranch, type WorkspaceBranch } from '@/src/store/workspaceSlice'
+import { useBranches } from '@/src/hooks/useBranches'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -27,32 +29,89 @@ function today() {
 
 // ─── Menu modal ───────────────────────────────────────────────────────────────
 
-function MenuModal({ visible, onClose, isDark, onToggleTheme, onLogout, userName, userEmail, initials }: {
+function MenuModal({ visible, onClose, isDark, onToggleTheme, onLogout, userName, userEmail, initials, activeBranch, branches, canSwitchBranch, onSelectBranch }: {
   visible: boolean; onClose: () => void; isDark: boolean
   onToggleTheme: () => void; onLogout: () => void
   userName: string; userEmail: string; initials: string
+  activeBranch: WorkspaceBranch | null; branches: WorkspaceBranch[]
+  canSwitchBranch: boolean; onSelectBranch: (b: WorkspaceBranch) => void
 }) {
+  const [branchOpen, setBranchOpen] = useState(false)
+
+  const bg     = isDark ? '#18181b' : '#ffffff'
+  const border = isDark ? '#27272a' : '#f4f4f5'
+  const text   = isDark ? '#fff'    : '#09090b'
+  const muted  = isDark ? '#71717a' : '#a1a1aa'
+  const rowBg  = isDark ? '#27272a' : '#f9f9f9'
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={{ flex: 1 }} onPress={onClose}>
-        <View style={{
-          position: 'absolute', top: 80, right: 16, width: 260,
-          borderRadius: 20, overflow: 'hidden',
-          backgroundColor: isDark ? '#18181b' : '#ffffff',
-          borderWidth: 1, borderColor: isDark ? '#27272a' : '#f4f4f5',
-          shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: isDark ? '#27272a' : '#f4f4f5' }}>
+        <View style={{ position: 'absolute', top: 80, right: 16, width: 268, borderRadius: 20, overflow: 'hidden', backgroundColor: bg, borderWidth: 1, borderColor: border, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 }}>
+
+          {/* User info */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: border }}>
             <View style={{ height: 42, width: 42, borderRadius: 21, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 15, fontWeight: '800', color: 'white' }}>{initials}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: isDark ? '#fff' : '#09090b' }} numberOfLines={1}>{userName}</Text>
-              <Text style={{ fontSize: 12, color: '#a1a1aa', marginTop: 2 }} numberOfLines={1}>{userEmail}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: text }} numberOfLines={1}>{userName}</Text>
+              <Text style={{ fontSize: 12, color: muted, marginTop: 2 }} numberOfLines={1}>{userEmail}</Text>
             </View>
           </View>
+
+          {/* Branch row — tapping expands inline dropdown for admins */}
+          <TouchableOpacity
+            onPress={canSwitchBranch ? (e) => { e.stopPropagation(); setBranchOpen(o => !o) } : undefined}
+            activeOpacity={canSwitchBranch ? 0.7 : 1}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: branchOpen ? 0 : 1, borderBottomColor: border }}
+          >
+            <View style={{ height: 36, width: 36, borderRadius: 12, backgroundColor: isDark ? '#1e3a5f' : '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="business-outline" size={18} color="#2563eb" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: muted, marginBottom: 1 }}>Current Branch</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: text }} numberOfLines={1}>
+                {activeBranch?.branch_name ?? 'Not set'}
+              </Text>
+              {activeBranch?.branch_code && (
+                <Text style={{ fontSize: 11, color: '#2563eb', marginTop: 1 }}>{activeBranch.branch_code}</Text>
+              )}
+            </View>
+            {canSwitchBranch && (
+              <Ionicons name={branchOpen ? 'chevron-up' : 'chevron-down'} size={16} color={muted} />
+            )}
+          </TouchableOpacity>
+
+          {/* Inline branch list */}
+          {branchOpen && (
+            <View style={{ borderBottomWidth: 1, borderBottomColor: border, backgroundColor: rowBg }}>
+              {branches.map((b, i) => {
+                const isActive = b.id === activeBranch?.id
+                return (
+                  <TouchableOpacity
+                    key={b.id}
+                    onPress={(e) => { e.stopPropagation(); onSelectBranch(b); setBranchOpen(false); onClose() }}
+                    activeOpacity={0.7}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 11, borderTopWidth: i === 0 ? 1 : 0, borderTopColor: border }}
+                  >
+                    <Ionicons name="git-branch-outline" size={15} color={isActive ? '#2563eb' : muted} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: isActive ? '700' : '500', color: isActive ? '#2563eb' : text }} numberOfLines={1}>
+                        {b.branch_name}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: muted }}>{b.branch_code}</Text>
+                    </View>
+                    {isActive && <Ionicons name="checkmark-circle" size={16} color="#2563eb" />}
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          )}
+
+          {/* Theme toggle */}
           <TouchableOpacity onPress={() => { onToggleTheme(); onClose() }} activeOpacity={0.7}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: isDark ? '#27272a' : '#f4f4f5' }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: border }}>
             <View style={{ height: 36, width: 36, borderRadius: 12, backgroundColor: isDark ? '#451a03' : '#fef3c7', alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={18} color={isDark ? '#f59e0b' : '#6366f1'} />
             </View>
@@ -60,6 +119,8 @@ function MenuModal({ visible, onClose, isDark, onToggleTheme, onLogout, userName
               {isDark ? 'Switch to Light' : 'Switch to Dark'}
             </Text>
           </TouchableOpacity>
+
+          {/* Logout */}
           <TouchableOpacity onPress={() => { onLogout(); onClose() }} activeOpacity={0.7}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
             <View style={{ height: 36, width: 36, borderRadius: 12, backgroundColor: isDark ? '#450a0a' : '#fef2f2', alignItems: 'center', justifyContent: 'center' }}>
@@ -67,6 +128,7 @@ function MenuModal({ visible, onClose, isDark, onToggleTheme, onLogout, userName
             </View>
             <Text style={{ fontSize: 14, fontWeight: '500', color: '#ef4444' }}>Logout</Text>
           </TouchableOpacity>
+
         </View>
       </Pressable>
     </Modal>
@@ -107,11 +169,18 @@ function MetricCard({ label, value, iconName, iconLib = 'ion', iconBg, iconColor
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const router   = useRouter()
-  const dispatch = useAppDispatch()
-  const authUser = useAppSelector(s => s.auth.user)
+  const router         = useRouter()
+  const dispatch       = useAppDispatch()
+  const authUser       = useAppSelector(s => s.auth.user)
+  const activeBranch   = useAppSelector(s => s.workspace.activeBranch)
+  const branches       = useAppSelector(s => s.workspace.branches)
   const { colorScheme, setColorScheme } = useColorScheme()
   const isDark = colorScheme === 'dark'
+
+  // Fetch branches and populate workspace state
+  useBranches()
+
+  const canSwitchBranch = !authUser?.branch_id // admins have no fixed branch
 
   const firstName = authUser?.first_name ?? 'there'
   const userName  = authUser ? `${authUser.first_name ?? ''} ${authUser.last_name ?? ''}`.trim() : 'User'
@@ -120,13 +189,20 @@ export default function HomeScreen() {
 
   const handleToggleTheme = () => {
     const next = isDark ? 'light' : 'dark'
-    setColorScheme(next)
+    if (Platform.OS !== 'web') {
+      setColorScheme(next)          // calls Appearance.setColorScheme internally
+      Appearance.setColorScheme(next) // ensures dark: variants re-evaluate immediately
+    }
     dispatch(setTheme(next))
   }
 
   const handleLogout = () => {
     dispatch(logout())
     router.replace('/(auth)/login')
+  }
+
+  const handleSelectBranch = (b: WorkspaceBranch) => {
+    dispatch(setActiveBranch(b))
   }
 
   // Static placeholder — wire API here later
@@ -166,10 +242,17 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setMenuOpen(true)}
-                className="h-9 w-9 rounded-full bg-white items-center justify-center"
                 activeOpacity={0.8}
+                className="flex-row items-center gap-x-2 bg-white/15 rounded-full pl-3 pr-1 py-1"
               >
-                <Text className="text-xs font-black text-blue-600">{initials}</Text>
+                {activeBranch && (
+                  <Text className="text-xs font-semibold text-white" numberOfLines={1}>
+                    {activeBranch.branch_name}
+                  </Text>
+                )}
+                <View className="h-7 w-7 rounded-full bg-white items-center justify-center">
+                  <Text className="text-[10px] font-black text-blue-600">{initials}</Text>
+                </View>
               </TouchableOpacity>
             </View>
           </View>
@@ -305,6 +388,10 @@ export default function HomeScreen() {
         userName={userName}
         userEmail={userEmail}
         initials={initials}
+        activeBranch={activeBranch}
+        branches={branches}
+        canSwitchBranch={canSwitchBranch}
+        onSelectBranch={handleSelectBranch}
       />
     </>
   )

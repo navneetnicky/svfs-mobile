@@ -1,6 +1,6 @@
 import "../global.css";
 import { useEffect, useRef, useState } from 'react'
-import { Platform, View, Text, Animated, Dimensions } from 'react-native'
+import { Appearance, Platform, View, Text, Animated, Dimensions } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Stack, Redirect } from 'expo-router'
 import { Provider } from 'react-redux'
@@ -14,8 +14,8 @@ import 'react-native-reanimated'
 import { store } from '@/src/store'
 
 import { hydrateAuth } from '@/src/store/authSlice'
+import { setTheme } from '@/src/store/themeSlice'
 import { useAppSelector } from '@/src/store/hooks'
-import { useColorScheme } from '@/components/useColorScheme'
 import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider'
 
 SplashScreen.preventAutoHideAsync()
@@ -53,6 +53,15 @@ export default function RootLayout() {
         store.dispatch(hydrateAuth({ token, user: JSON.parse(userRaw) }))
       } else {
         store.dispatch(hydrateAuth(null))
+      }
+
+      // Restore saved theme
+      const savedTheme = Platform.OS === 'web'
+        ? localStorage.getItem('app_theme')
+        : await SecureStore.getItemAsync('app_theme')
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        store.dispatch(setTheme(savedTheme))
+        if (Platform.OS !== 'web') Appearance.setColorScheme(savedTheme)
       }
     }
     hydrate()
@@ -141,11 +150,11 @@ function JSSplashScreen() {
 }
 
 function AppNavigator() {
-  const colorScheme = useColorScheme()
   const { token, isHydrating } = useAppSelector((s) => s.auth)
+  const theme = useAppSelector((s) => s.theme.theme)
+  const isDark = theme === 'dark'
   const [minTimeDone, setMinTimeDone] = useState(false)
 
-  // Enforce minimum splash duration so the animation is always visible
   useEffect(() => {
     const t = setTimeout(() => setMinTimeDone(true), SPLASH_MIN_MS)
     return () => clearTimeout(t)
@@ -159,15 +168,20 @@ function AppNavigator() {
 
   if (showingSplash) return <JSSplashScreen />
 
+  // Redux is the single source of truth for theme.
+  // Wrapping in a View with className="dark" makes NativeWind's darkMode:'class'
+  // apply dark: variants to all descendants on native.
   return (
-    <GluestackUIProvider mode={colorScheme === 'dark' ? 'dark' : 'light'}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(app)" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        {!token && <Redirect href="/(auth)/login" />}
+    <GluestackUIProvider mode={isDark ? 'dark' : 'light'}>
+      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+        <View className={`flex-1 ${isDark ? 'dark' : ''}`}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(app)" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          {!token && <Redirect href="/(auth)/login" />}
+        </View>
       </ThemeProvider>
     </GluestackUIProvider>
   )
