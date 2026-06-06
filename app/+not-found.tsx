@@ -34,7 +34,7 @@ export default function NotFoundScreen() {
           </View>
 
           <TouchableOpacity
-            onPress={() => router.replace('/(app)/dashboard')}
+            onPress={() => router.replace('/(app)')}
             className="mt-2 flex-row items-center gap-x-2 bg-blue-600 px-6 py-3 rounded-xl"
             activeOpacity={0.8}
           >
