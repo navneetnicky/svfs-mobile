@@ -13,7 +13,7 @@ export function useLogin() {
     mutationFn: (credentials: LoginCredentials) => authService.login(credentials),
     onSuccess: (data) => {
       dispatch(setCredentials(data))
-      router.replace('/(app)/dashboard')
+      router.replace('/(app)')
     },
   })
 }
