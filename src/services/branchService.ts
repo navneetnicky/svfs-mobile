@@ -4,6 +4,7 @@ export interface BranchRecord {
   id: string
   branch_name: string
   branch_code: string
+  company_id: string
 }
 
 export const branchService = {

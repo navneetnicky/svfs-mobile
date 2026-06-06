@@ -147,6 +147,7 @@ function AppNavigator() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(app)" />
             <Stack.Screen name="(auth)" />
+            <Stack.Screen name="booking" />
             <Stack.Screen name="+not-found" />
           </Stack>
           {!token && <Redirect href="/(auth)/login" />}

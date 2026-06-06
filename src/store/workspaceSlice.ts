@@ -6,6 +6,7 @@ export interface WorkspaceBranch {
   id: string
   branch_name: string
   branch_code: string
+  company_id: string
 }
 
 interface WorkspaceState {
