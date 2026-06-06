@@ -1,6 +1,9 @@
 import "../global.css";
 import { useEffect, useRef, useState } from 'react'
-import { Platform, View, Text, Animated, Dimensions } from 'react-native'
+import { Appearance, Platform, View, Text, Animated, Dimensions } from 'react-native'
+
+// Force light mode — theme toggle is not implemented yet
+if (Platform.OS !== 'web') Appearance.setColorScheme('light')
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Stack, Redirect } from 'expo-router'
 import { Provider } from 'react-redux'
