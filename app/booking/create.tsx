@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, FlatList,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Modal, Pressable,
 } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -104,7 +104,7 @@ function CityPicker({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return cities.slice(0, 50)
-    return cities.filter(c => c.city.toLowerCase().includes(q) || c.state.toLowerCase().includes(q)).slice(0, 50)
+    return cities.filter(c => c.location.toLowerCase().includes(q)).slice(0, 50)
   }, [cities, search])
 
   function handleSelect(name: string, id: number) {
@@ -114,10 +114,9 @@ function CityPicker({
   }
 
   return (
-    <View style={{ marginBottom: 12, zIndex: 10 }}>
+    <View style={{ marginBottom: 12, zIndex: 100 }}>
       <Text style={{ fontSize: 12, fontWeight: '500', color: '#52525b', marginBottom: 4 }}>To City</Text>
 
-      {/* Trigger / search input */}
       <View style={{
         flexDirection: 'row', alignItems: 'center',
         backgroundColor: 'white', borderRadius: 10, paddingHorizontal: 12,
@@ -128,6 +127,7 @@ function CityPicker({
           value={open ? search : value}
           onChangeText={v => { setSearch(v); if (!open) setOpen(true) }}
           onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => { setOpen(false); setSearch('') }, 150)}
           placeholder="Search destination city..."
           placeholderTextColor="#a1a1aa"
           style={{ flex: 1, paddingVertical: 11, fontSize: 14, color: '#09090b' }}
@@ -143,13 +143,13 @@ function CityPicker({
         }
       </View>
 
-      {/* Inline dropdown list */}
       {open && (
         <View style={{
-          backgroundColor: 'white', borderRadius: 10, marginTop: 4,
+          position: 'absolute', top: 64, left: 0, right: 0,
+          backgroundColor: 'white', borderRadius: 10,
           borderWidth: 1, borderColor: '#e4e4e7',
-          maxHeight: 220,
-          shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 6,
+          maxHeight: 220, zIndex: 200, elevation: 10,
+          shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12,
         }}>
           {isLoading ? (
             <View style={{ paddingVertical: 20, alignItems: 'center' }}>
@@ -160,30 +160,30 @@ function CityPicker({
               <Text style={{ color: '#a1a1aa', fontSize: 13 }}>No cities found</Text>
             </View>
           ) : (
-            <FlatList
-              data={filtered}
-              keyExtractor={item => String(item.cityId)}
+            <ScrollView
               keyboardShouldPersistTaps="handled"
               nestedScrollEnabled
-              renderItem={({ item, index }) => (
+              showsVerticalScrollIndicator={false}
+            >
+              {filtered.map((item, index) => (
                 <TouchableOpacity
-                  onPress={() => handleSelect(item.city, item.cityId)}
+                  key={item.id}
+                  onPress={() => handleSelect(item.location, item.id)}
                   style={{
                     paddingHorizontal: 14, paddingVertical: 11,
                     borderBottomWidth: index < filtered.length - 1 ? 1 : 0,
                     borderBottomColor: '#f4f4f5',
-                    backgroundColor: item.city === value ? '#eff6ff' : 'white',
-                    flexDirection: 'row', alignItems: 'center', gap: 10,
+                    backgroundColor: item.location === value ? '#eff6ff' : 'white',
+                    flexDirection: 'row', alignItems: 'center',
                   }}
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, color: '#09090b', fontWeight: item.city === value ? '700' : '400' }}>{item.city}</Text>
-                    <Text style={{ fontSize: 11, color: '#a1a1aa', marginTop: 1 }}>{item.state}</Text>
-                  </View>
-                  {item.city === value && <Ionicons name="checkmark" size={16} color="#2563eb" />}
+                  <Text style={{ fontSize: 14, color: '#09090b', flex: 1, fontWeight: item.location === value ? '700' : '400' }}>
+                    {item.location}
+                  </Text>
+                  {item.location === value && <Ionicons name="checkmark" size={16} color="#2563eb" />}
                 </TouchableOpacity>
-              )}
-            />
+              ))}
+            </ScrollView>
           )}
         </View>
       )}
@@ -298,7 +298,7 @@ export default function BookingCreateScreen() {
     const payload: Omit<BookingFormData, 'company_id' | 'branch_id'> = {
       booking_type: bookingType,
       to_city: toCity,
-      to_city_id: toCityId,
+      to_location_master_id: toCityId,
       sender_name: senderName.trim(),
       sender_mobile: senderMobile.trim() || undefined,
       sender_address: senderAddress.trim() || undefined,
