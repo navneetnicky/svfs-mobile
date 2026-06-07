@@ -46,7 +46,7 @@ export interface BookingRecord {
 export interface BookingFormData {
   booking_type: BookingType
   to_city: string
-  to_city_id?: number | null
+  to_location_master_id?: number | null
   sender_name: string
   sender_mobile?: string
   sender_address?: string

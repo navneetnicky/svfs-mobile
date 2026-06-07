@@ -11,8 +11,8 @@ export function useBranches() {
   const authUser  = useAppSelector(s => s.auth.user)
 
   const query = useQuery({
-    queryKey: ['branches'],
-    queryFn: branchService.getAll,
+    queryKey: ['branches', authUser?.company_id],
+    queryFn: () => branchService.getAll(authUser?.company_id ?? undefined),
     enabled: !!authUser,
     staleTime: 5 * 60 * 1000,
   })

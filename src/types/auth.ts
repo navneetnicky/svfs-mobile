@@ -10,6 +10,7 @@ export interface AuthUser {
   email: string
   role: string
   branch_id: string | null
+  company_id: string | null
   permissions: string[]
 }
 
