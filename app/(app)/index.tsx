@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, Modal, Pressable,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks'
@@ -154,6 +155,7 @@ function MetricCard({ label, value, iconName, iconLib = 'ion', iconBg, iconColor
 
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { top } = useSafeAreaInsets()
 
   const router       = useRouter()
   const dispatch     = useAppDispatch()
@@ -198,8 +200,8 @@ export default function HomeScreen() {
 
         {/* ── Header ── */}
         <View
-          className="bg-blue-600 px-4 pt-14 pb-20"
-          style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
+          className="bg-blue-600 px-4 pb-20"
+          style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32, marginTop: -top, paddingTop: top + 16 }}
         >
           <View className="flex-row items-center justify-between mb-5">
             <View className="flex-row items-center gap-x-2">

@@ -1,6 +1,6 @@
 export type BookingType = 'PAID' | 'TO_PAY' | 'TBB' | 'FOC'
 export type BookingStatus = 'CREATED' | 'IN_TRANSIT' | 'RECEIVED_AT_BRANCH' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
-export type GstPaidBy = 'SENDER' | 'RECEIVER' | 'AGENT'
+export type GstPaidBy = 'Exempt' | 'Sender' | 'Receiver'
 
 // Normalize old lowercase API values to current uppercase enum
 export function normalizeStatus(s?: string | null): BookingStatus {
@@ -55,17 +55,50 @@ export interface BookingRecord {
   updated_at: string
 }
 
+export interface BookingInvoice {
+  eway_bill: string
+  inv_no: string
+  inv_amt: string
+}
+
+export interface BookingInsurance {
+  company_name: string
+  policy_no: string
+  amount: string
+  ins_date: string
+  remark: string
+}
+
 export interface BookingFormData {
+  // Booking info
   booking_type: BookingType
   to_city: string
   to_location_master_id?: number | null
+  eway_bill_no?: string | null
+  pay_mode?: string | null
+
+  // Sender
+  sender_party_id?: string | null
   sender_name: string
   sender_mobile?: string
+  sender_gstin?: string | null
   sender_address?: string
+  invoices?: BookingInvoice[]
+  crossing_agent_lr?: string | null
+  crossing_agent_name?: string | null
+  insurance?: BookingInsurance | null
+
+  // Receiver
+  receiver_party_id?: string | null
   receiver_name: string
   receiver_mobile?: string
+  receiver_gstin?: string | null
   receiver_address?: string
-  items: { pkg_count?: number; description?: string; unit: string; actual_weight?: number; charged_weight?: number; rate?: number; total?: number }[]
+
+  // Items
+  items: { pkg_count?: number; consignment_id?: string; description?: string; unit: string; actual_weight?: number; charged_weight?: number; rate?: number; total?: number }[]
+
+  // Charges
   freight: number
   labour_charge: number
   delivery_charge: number
@@ -76,6 +109,7 @@ export interface BookingFormData {
   grand_total: number
   gst_paid_by?: string
   remarks?: string
+
   company_id: string
   branch_id: string
 }

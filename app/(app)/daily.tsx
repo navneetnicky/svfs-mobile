@@ -233,7 +233,7 @@ export default function DailyScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <View style={{
-        backgroundColor: colors.card, paddingTop: 56, paddingBottom: 12, paddingHorizontal: 16,
+        backgroundColor: colors.card, paddingTop: 16, paddingBottom: 12, paddingHorizontal: 16,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         borderBottomWidth: 1, borderBottomColor: colors.border,
       }}>

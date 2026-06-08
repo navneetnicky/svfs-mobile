@@ -118,7 +118,7 @@ export default function BookingDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f4f4f5' }}>
-      <View style={{ backgroundColor: 'white', paddingTop: 56, paddingBottom: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f4f4f5' }}>
+      <View style={{ backgroundColor: 'white', paddingTop: 12, paddingBottom: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f4f4f5' }}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
           <Ionicons name="arrow-back" size={22} color="#09090b" />
         </TouchableOpacity>

@@ -1,6 +1,7 @@
 import "../global.css";
 import { useEffect, useRef, useState } from 'react'
 import { Appearance, Platform, View, Text, Animated, Dimensions } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 // Force light mode — theme toggle is not implemented yet
 if (Platform.OS !== 'web') Appearance.setColorScheme('light')
@@ -143,7 +144,7 @@ function AppNavigator() {
   return (
     <GluestackUIProvider mode="light">
       <ThemeProvider value={DefaultTheme}>
-        <View style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(app)" />
             <Stack.Screen name="(auth)" />
@@ -151,7 +152,7 @@ function AppNavigator() {
             <Stack.Screen name="+not-found" />
           </Stack>
           {!token && <Redirect href="/(auth)/login" />}
-        </View>
+        </SafeAreaView>
       </ThemeProvider>
     </GluestackUIProvider>
   )
