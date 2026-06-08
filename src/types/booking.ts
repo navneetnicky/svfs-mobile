@@ -1,6 +1,14 @@
 export type BookingType = 'PAID' | 'TO_PAY' | 'TBB' | 'FOC'
-export type BookingStatus = 'booked' | 'in_transit' | 'delivered' | 'cancelled'
+export type BookingStatus = 'CREATED' | 'IN_TRANSIT' | 'RECEIVED_AT_BRANCH' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED'
 export type GstPaidBy = 'SENDER' | 'RECEIVER' | 'AGENT'
+
+// Normalize old lowercase API values to current uppercase enum
+export function normalizeStatus(s?: string | null): BookingStatus {
+  if (!s) return 'CREATED'
+  const up = s.toUpperCase()
+  if (up === 'BOOKED') return 'CREATED'
+  return up as BookingStatus
+}
 
 export interface BookingItem {
   id?: number
@@ -17,6 +25,10 @@ export interface BookingRecord {
   id: string
   lr_number: string
   booked_at: string
+  in_transit_at?: string | null
+  received_at_branch_at?: string | null
+  out_for_delivery_at?: string | null
+  delivered_at?: string | null
   booking_type: BookingType
   status: BookingStatus
   to_city: string
