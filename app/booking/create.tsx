@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   ScrollView, View, Text, TouchableOpacity,
-  Alert, KeyboardAvoidingView, Platform,
+  Alert, KeyboardAvoidingView,
 } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -199,7 +199,7 @@ export default function BookingCreateScreen() {
   const isLastStep = step === STEPS.length - 1
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <View style={{ flex: 1, backgroundColor: colors.background }}>
 
         {/* Header */}
@@ -224,6 +224,7 @@ export default function BookingCreateScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           style={{ flex: 1 }}
         >
 
