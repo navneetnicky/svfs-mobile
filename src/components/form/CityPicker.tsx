@@ -28,7 +28,7 @@ export function CityPicker({ value, onSelect, required }: Props) {
   }
 
   return (
-    <View style={{ marginBottom: 12, zIndex: 100 }}>
+    <View style={{ marginBottom: 12, zIndex: open ? 999 : 1 }}>
       <View style={{ flexDirection: 'row', marginBottom: 4 }}>
         <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.medium, color: colors.mutedFg }}>
           To City

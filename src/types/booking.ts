@@ -85,8 +85,11 @@ export interface BookingFormData {
   sender_address?: string
   invoices?: BookingInvoice[]
   crossing_agent_lr?: string | null
-  crossing_agent_name?: string | null
+  crossing_agent_id?: string | null
   insurance?: BookingInsurance | null
+
+  // Bill party (TBB only)
+  bill_party_id?: string | null
 
   // Receiver
   receiver_party_id?: string | null
@@ -94,6 +97,7 @@ export interface BookingFormData {
   receiver_mobile?: string
   receiver_gstin?: string | null
   receiver_address?: string
+  receiver_address_type?: string | null
 
   // Items
   items: { pkg_count?: number; consignment_id?: string; description?: string; unit: string; actual_weight?: number; charged_weight?: number; rate?: number; total?: number }[]

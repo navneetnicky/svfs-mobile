@@ -3,14 +3,17 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, radius, typography } from '@/src/theme'
 import { FormField } from './FormField'
+import { SegmentControl } from './SegmentControl'
+import type { PartyAddress } from '@/src/services/partyService'
 
 export interface ReceiverExtra {
   address: string
+  address_type: string
   document_note: string
 }
 
 export function emptyReceiverExtra(): ReceiverExtra {
-  return { address: '', document_note: '' }
+  return { address: '', address_type: 'HOME', document_note: '' }
 }
 
 type Tab = 'address' | 'document'
@@ -23,9 +26,10 @@ const TABS: { id: Tab; label: string }[] = [
 type Props = {
   value: ReceiverExtra
   onChange: (v: ReceiverExtra) => void
+  savedAddresses?: PartyAddress[]
 }
 
-export function ReceiverSection({ value, onChange }: Props) {
+export function ReceiverSection({ value, onChange, savedAddresses }: Props) {
   const [tab, setTab] = useState<Tab>('address')
 
   return (
@@ -61,13 +65,58 @@ export function ReceiverSection({ value, onChange }: Props) {
       </ScrollView>
 
       {tab === 'address' && (
-        <FormField
-          label="Receiver Address"
-          value={value.address}
-          onChangeText={v => onChange({ ...value, address: v })}
-          placeholder="Full delivery address..."
-          multiline
-        />
+        <View>
+          <SegmentControl
+            label="Address Type"
+            options={[
+              { value: 'HOME',      label: 'Home' },
+              { value: 'OFFICE',    label: 'Office' },
+              { value: 'WAREHOUSE', label: 'Warehouse' },
+            ]}
+            value={value.address_type}
+            onChange={v => onChange({ ...value, address_type: v })}
+          />
+          {savedAddresses && savedAddresses.length > 0 ? (
+            <View>
+              <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.medium, color: colors.mutedFg, marginBottom: 8 }}>
+                Saved Addresses
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                {savedAddresses.map(addr => {
+                  const selected = value.address === addr.address
+                  return (
+                    <TouchableOpacity
+                      key={addr.id}
+                      onPress={() => onChange({ ...value, address: addr.address, address_type: addr.address_type || value.address_type })}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full,
+                        backgroundColor: selected ? colors.primary : colors.background,
+                        borderWidth: 1, borderColor: selected ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: selected ? '#fff' : colors.mutedFg }}>
+                        {addr.address_type}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+              {value.address ? (
+                <Text style={{ fontSize: typography.size.sm, color: colors.foreground, padding: 10, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
+                  {value.address}
+                </Text>
+              ) : null}
+            </View>
+          ) : (
+            <FormField
+              label="Receiver Address"
+              value={value.address}
+              onChangeText={v => onChange({ ...value, address: v })}
+              placeholder="Full delivery address..."
+              multiline
+            />
+          )}
+        </View>
       )}
 
       {tab === 'document' && (

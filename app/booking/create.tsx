@@ -6,7 +6,10 @@ import {
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useCreateBooking } from '@hooks/useBookings'
+import { useCreditInfo } from '@hooks/useCreditInfo'
+import { useAppSelector } from '@/src/store/hooks'
 import type { BookingType, BookingFormData } from '@/src/types/booking'
+import type { PartyAddress } from '@/src/services/partyService'
 import { colors, radius, typography } from '@/src/theme'
 import { BookingFooterBar } from '@/src/components/form/BookingFooterBar'
 import { StepIndicator } from '@/src/components/form/StepIndicator'
@@ -14,6 +17,7 @@ import { SegmentControl } from '@/src/components/form/SegmentControl'
 import { CityPicker } from '@/src/components/form/CityPicker'
 import { PartyCombobox } from '@/src/components/form/PartyCombobox'
 import { FormField } from '@/src/components/form/FormField'
+import { GstinField } from '@/src/components/form/GstinField'
 import { ItemsEditor, emptyItem, type ItemDraft } from '@/src/components/form/ItemsEditor'
 import { SenderSection, emptySenderExtra, type SenderExtra } from '@/src/components/form/SenderSection'
 import { ReceiverSection, emptyReceiverExtra, type ReceiverExtra } from '@/src/components/form/ReceiverSection'
@@ -60,29 +64,42 @@ function ChargeRow({ label, value, onChange }: { label: string; value: string; o
 
 export default function BookingCreateScreen() {
   const { mutate: createBooking, isPending } = useCreateBooking()
+  const activeBranch = useAppSelector(s => s.workspace.activeBranch)
+  const { data: creditInfo } = useCreditInfo(activeBranch?.id)
+
   const [step, setStep] = useState(0)
   const [stepError, setStepError] = useState<string | null>(null)
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => { setStepError(null) }, [step])
 
   // Step 0 — Booking info
-  const [bookingType, setBookingType] = useState<BookingType>('PAID')
-  const [toCity, setToCity]           = useState('')
-  const [toCityId, setToCityId]       = useState<number | null>(null)
+  const [bookingType,   setBookingType]   = useState<BookingType>('PAID')
+  const [toCity,        setToCity]        = useState('')
+  const [toCityId,      setToCityId]      = useState<number | null>(null)
+  const [ewayBillNo,    setEwayBillNo]    = useState('')
+  const [billPartyId,   setBillPartyId]   = useState<string | null>(null)
+  const [billPartyName, setBillPartyName] = useState('')
 
   // Step 1 — Sender
-  const [senderName,    setSenderName]    = useState('')
-  const [senderMobile,  setSenderMobile]  = useState('')
-  const [senderGstin,   setSenderGstin]   = useState('')
-  const [senderPartyId, setSenderPartyId] = useState<string | null>(null)
-  const [senderExtra,   setSenderExtra]   = useState<SenderExtra>(emptySenderExtra())
+  const [senderName,           setSenderName]           = useState('')
+  const [senderMobile,         setSenderMobile]         = useState('')
+  const [senderGstin,          setSenderGstin]          = useState('')
+  const [senderPartyId,        setSenderPartyId]        = useState<string | null>(null)
+  const [senderExtra,          setSenderExtra]          = useState<SenderExtra>(emptySenderExtra())
+  const [senderSavedAddresses, setSenderSavedAddresses] = useState<PartyAddress[]>([])
 
   // Step 2 — Receiver
-  const [receiverName,    setReceiverName]    = useState('')
-  const [receiverMobile,  setReceiverMobile]  = useState('')
-  const [receiverGstin,   setReceiverGstin]   = useState('')
-  const [receiverPartyId, setReceiverPartyId] = useState<string | null>(null)
-  const [receiverExtra,   setReceiverExtra]   = useState<ReceiverExtra>(emptyReceiverExtra())
+  const [receiverName,           setReceiverName]           = useState('')
+  const [receiverMobile,         setReceiverMobile]         = useState('')
+  const [receiverGstin,          setReceiverGstin]          = useState('')
+  const [receiverPartyId,        setReceiverPartyId]        = useState<string | null>(null)
+  const [receiverExtra,          setReceiverExtra]          = useState<ReceiverExtra>(emptyReceiverExtra())
+  const [receiverSavedAddresses, setReceiverSavedAddresses] = useState<PartyAddress[]>([])
 
   // Step 3 — Items
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()])
@@ -94,7 +111,6 @@ export default function BookingCreateScreen() {
   const [agentCharge,    setAgentCharge]    = useState('')
   const [taxiCharge,     setTaxiCharge]     = useState('')
   const [biltyCharge,    setBiltyCharge]    = useState('')
-  const [cod,            setCod]            = useState('')
 
   // Persistent bottom bar state
   const [gstPaidBy, setGstPaidBy] = useState('Exempt')
@@ -108,12 +124,13 @@ export default function BookingCreateScreen() {
     if (['PKT', 'BOX', 'PCS'].includes(it.unit)) return sum + d(it.pkg_count) * rate
     return sum + d(it.charged_weight || it.actual_weight) * rate
   }, 0)
-  const chargesTotal = d(freight) + d(labourCharge) + d(deliveryCharge) + d(agentCharge) + d(taxiCharge) + d(biltyCharge) + d(cod)
+  const chargesTotal = d(freight) + d(labourCharge) + d(deliveryCharge) + d(agentCharge) + d(taxiCharge) + d(biltyCharge) + d(senderExtra.cod)
   const grandTotal   = itemsTotal + chargesTotal
 
   function handleBookingTypeChange(t: BookingType) {
     setBookingType(t)
     if (t === 'TBB' || t === 'FOC') setGstPaidBy('Exempt')
+    if (t !== 'TBB') { setBillPartyId(null); setBillPartyName('') }
   }
 
   function toggleGst(val: string) {
@@ -123,9 +140,10 @@ export default function BookingCreateScreen() {
   }
 
   function validateStep(): string | null {
-    if (step === 0 && !toCity)              return 'Please select a destination city.'
-    if (step === 1 && !senderName.trim())   return 'Sender name is required.'
-    if (step === 2 && !receiverName.trim()) return 'Receiver name is required.'
+    if (step === 0 && !toCity)                                    return 'Please select a destination city.'
+    if (step === 0 && bookingType === 'TBB' && !billPartyId)      return 'Bill Party is required for TBB booking.'
+    if (step === 1 && !senderName.trim())                         return 'Sender name is required.'
+    if (step === 2 && !receiverName.trim())                       return 'Receiver name is required.'
     return null
   }
 
@@ -145,26 +163,29 @@ export default function BookingCreateScreen() {
     if (gstPaidBy === 'Receiver' && !receiverGstin.trim()) { setStepError('Receiver GSTIN is required when GST is paid by Receiver.'); setStep(2); return }
 
     const payload: Omit<BookingFormData, 'company_id' | 'branch_id'> = {
-      booking_type: bookingType,
-      to_city:      toCity,
+      booking_type:          bookingType,
+      to_city:               toCity,
       to_location_master_id: toCityId,
-      pay_mode:     bookingType === 'PAID' ? payMode : null,
+      eway_bill_no:          ewayBillNo.trim() || undefined,
+      pay_mode:              bookingType === 'PAID' ? payMode : null,
+      bill_party_id:         bookingType === 'TBB' ? billPartyId : null,
 
-      sender_party_id:  senderPartyId,
-      sender_name:      senderName.trim(),
-      sender_mobile:    senderMobile.trim()  || undefined,
-      sender_gstin:     senderGstin.trim()   || undefined,
-      sender_address:   senderExtra.address.trim() || undefined,
-      invoices:         senderExtra.invoices.filter(inv => inv.inv_no || inv.eway_bill),
-      crossing_agent_lr:   senderExtra.crossing_agent_lr.trim()   || undefined,
-      crossing_agent_name: senderExtra.crossing_agent_name.trim() || undefined,
-      insurance: senderExtra.insurance.policy_no ? senderExtra.insurance : undefined,
+      sender_party_id:   senderPartyId,
+      sender_name:       senderName.trim(),
+      sender_mobile:     senderMobile.trim()  || undefined,
+      sender_gstin:      senderGstin.trim()   || undefined,
+      sender_address:    senderExtra.address.trim() || undefined,
+      invoices:          senderExtra.invoices.filter(inv => inv.inv_no || inv.eway_bill),
+      crossing_agent_lr: senderExtra.crossing_agent_lr.trim() || undefined,
+      crossing_agent_id: senderExtra.crossing_agent_id || undefined,
+      insurance:         senderExtra.insurance.policy_no ? senderExtra.insurance : undefined,
 
-      receiver_party_id: receiverPartyId,
-      receiver_name:     receiverName.trim(),
-      receiver_mobile:   receiverMobile.trim() || undefined,
-      receiver_gstin:    receiverGstin.trim()  || undefined,
-      receiver_address:  receiverExtra.address.trim() || undefined,
+      receiver_party_id:    receiverPartyId,
+      receiver_name:        receiverName.trim(),
+      receiver_mobile:      receiverMobile.trim() || undefined,
+      receiver_gstin:       receiverGstin.trim()  || undefined,
+      receiver_address:     receiverExtra.address.trim() || undefined,
+      receiver_address_type: receiverExtra.address_type || undefined,
 
       items: items
         .filter(it => it.description.trim() || it.pkg_count || it.consignment_name)
@@ -184,7 +205,7 @@ export default function BookingCreateScreen() {
       agent_charge:    d(agentCharge),
       taxi_charge:     d(taxiCharge),
       bilty_charge:    d(biltyCharge),
-      cod:             d(cod),
+      cod:             d(senderExtra.cod),
       grand_total:     grandTotal,
       gst_paid_by:     gstPaidBy || undefined,
       remarks:         remarks.trim() || undefined,
@@ -208,7 +229,8 @@ export default function BookingCreateScreen() {
           paddingTop: 12, paddingBottom: 0, paddingHorizontal: 16,
           borderBottomWidth: 1, borderBottomColor: colors.border,
         }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 12 }}>
+          {/* Row 1: back + title */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
             <TouchableOpacity onPress={() => step > 0 ? setStep(s => s - 1) : router.back()} style={{ marginRight: 12 }}>
               <Ionicons name="arrow-back" size={22} color={colors.foreground} />
             </TouchableOpacity>
@@ -216,6 +238,40 @@ export default function BookingCreateScreen() {
               New Booking
             </Text>
           </View>
+
+          {/* Row 2: branch · date · time · credit */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            {activeBranch && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primaryMuted, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Ionicons name="business-outline" size={11} color={colors.primary} />
+                <Text style={{ fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: colors.primary }}>
+                  {activeBranch.branch_name}
+                </Text>
+              </View>
+            )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.muted, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Ionicons name="calendar-outline" size={11} color={colors.mutedFg} />
+              <Text style={{ fontSize: typography.size.xs, fontWeight: typography.weight.medium, color: colors.mutedFg }}>
+                {now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.muted, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Ionicons name="time-outline" size={11} color={colors.mutedFg} />
+              <Text style={{ fontSize: typography.size.xs, fontWeight: typography.weight.medium, color: colors.mutedFg }}>
+                {now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+              </Text>
+            </View>
+            {creditInfo && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: (creditInfo.credit_remaining ?? Infinity) === 0 ? '#fee2e2' : '#d1fae5', borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Ionicons name="wallet-outline" size={11} color={(creditInfo.credit_remaining ?? Infinity) === 0 ? colors.destructive : colors.success} />
+                <Text style={{ fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: (creditInfo.credit_remaining ?? Infinity) === 0 ? colors.destructive : colors.success }}>
+                  {creditInfo.credit_remaining == null ? 'Unlimited' : `₹${creditInfo.credit_remaining.toLocaleString('en-IN')}`}
+                  {creditInfo.credit_limit != null ? ` / ₹${creditInfo.credit_limit.toLocaleString('en-IN')}` : ''}
+                </Text>
+              </View>
+            )}
+          </View>
+
           <StepIndicator steps={STEPS} current={step} onPress={i => setStep(i)} />
         </View>
 
@@ -265,6 +321,22 @@ export default function BookingCreateScreen() {
                 onSelect={(name, id) => { setToCity(name); setToCityId(id) }}
                 required
               />
+              {bookingType === 'TBB' && (
+                <PartyCombobox
+                  label="Bill Party"
+                  value={billPartyName}
+                  onChange={setBillPartyName}
+                  onSelect={party => { setBillPartyName(party.legal_name); setBillPartyId(party.id) }}
+                  required
+                />
+              )}
+              <FormField
+                label="E-Way Bill No."
+                value={ewayBillNo}
+                onChangeText={setEwayBillNo}
+                placeholder="12-digit EWB number"
+                keyboardType="numeric"
+              />
             </SectionCard>
           )}
 
@@ -281,13 +353,15 @@ export default function BookingCreateScreen() {
                   setSenderMobile(party.contacts?.[0]?.phone ?? '')
                   setSenderGstin(party.gst_number ?? '')
                   setSenderPartyId(party.id)
+                  setSenderSavedAddresses(party.partyAddresses ?? [])
+                  setSenderExtra(prev => ({ ...prev, address: '' }))
                 }}
                 required
               />
               <FormField label="Mobile" value={senderMobile} onChangeText={setSenderMobile} placeholder="10-digit mobile" keyboardType="phone-pad" />
-              <FormField label="GSTIN" value={senderGstin} onChangeText={setSenderGstin} placeholder="GST number (optional)" autoCapitalize="characters" />
+              <GstinField value={senderGstin} onChangeText={setSenderGstin} />
               <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 14 }} />
-              <SenderSection value={senderExtra} onChange={setSenderExtra} />
+              <SenderSection value={senderExtra} onChange={setSenderExtra} savedAddresses={senderSavedAddresses} />
             </SectionCard>
           )}
 
@@ -304,13 +378,15 @@ export default function BookingCreateScreen() {
                   setReceiverMobile(party.contacts?.[0]?.phone ?? '')
                   setReceiverGstin(party.gst_number ?? '')
                   setReceiverPartyId(party.id)
+                  setReceiverSavedAddresses(party.partyAddresses ?? [])
+                  setReceiverExtra(prev => ({ ...prev, address: '' }))
                 }}
                 required
               />
               <FormField label="Mobile" value={receiverMobile} onChangeText={setReceiverMobile} placeholder="10-digit mobile" keyboardType="phone-pad" />
-              <FormField label="GSTIN" value={receiverGstin} onChangeText={setReceiverGstin} placeholder="GST number (optional)" autoCapitalize="characters" />
+              <GstinField value={receiverGstin} onChangeText={setReceiverGstin} />
               <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 14 }} />
-              <ReceiverSection value={receiverExtra} onChange={setReceiverExtra} />
+              <ReceiverSection value={receiverExtra} onChange={setReceiverExtra} savedAddresses={receiverSavedAddresses} />
             </SectionCard>
           )}
 
@@ -333,7 +409,6 @@ export default function BookingCreateScreen() {
                 <ChargeRow label="Agent Charge (₹)"    value={agentCharge}    onChange={setAgentCharge} />
                 <ChargeRow label="Taxi Charge (₹)"     value={taxiCharge}     onChange={setTaxiCharge} />
                 <ChargeRow label="Bilty Charge (₹)"    value={biltyCharge}    onChange={setBiltyCharge} />
-                <ChargeRow label="COD (₹)"             value={cod}            onChange={setCod} />
               </SectionCard>
 
               <SectionCard>

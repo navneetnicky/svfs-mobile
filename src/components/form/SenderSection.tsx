@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, radius, typography } from '@/src/theme'
 import { FormField } from './FormField'
+import { PartyCombobox } from './PartyCombobox'
+import type { PartyAddress } from '@/src/services/partyService'
 import type { BookingInvoice, BookingInsurance } from '@/src/types/booking'
 
 export interface SenderExtra {
@@ -10,6 +12,7 @@ export interface SenderExtra {
   address: string
   crossing_agent_lr: string
   crossing_agent_name: string
+  crossing_agent_id: string
   insurance: BookingInsurance
   cod: string
   document_note: string
@@ -21,6 +24,7 @@ export function emptySenderExtra(): SenderExtra {
     address: '',
     crossing_agent_lr: '',
     crossing_agent_name: '',
+    crossing_agent_id: '',
     insurance: { company_name: '', policy_no: '', amount: '', ins_date: '', remark: '' },
     cod: '',
     document_note: '',
@@ -41,9 +45,10 @@ const TABS: { id: Tab; label: string }[] = [
 type Props = {
   value: SenderExtra
   onChange: (v: SenderExtra) => void
+  savedAddresses?: PartyAddress[]
 }
 
-export function SenderSection({ value, onChange }: Props) {
+export function SenderSection({ value, onChange, savedAddresses }: Props) {
   const [tab, setTab] = useState<Tab>('invoice')
 
   function set<K extends keyof SenderExtra>(key: K, v: SenderExtra[K]) {
@@ -158,28 +163,63 @@ export function SenderSection({ value, onChange }: Props) {
       )}
 
       {tab === 'address' && (
-        <FormField
-          label="Sender Address"
-          value={value.address}
-          onChangeText={v => set('address', v)}
-          placeholder="Full pickup address..."
-          multiline
-        />
+        <View>
+          {savedAddresses && savedAddresses.length > 0 ? (
+            <View>
+              <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.medium, color: colors.mutedFg, marginBottom: 8 }}>
+                Saved Addresses
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                {savedAddresses.map(addr => {
+                  const selected = value.address === addr.address
+                  return (
+                    <TouchableOpacity
+                      key={addr.id}
+                      onPress={() => set('address', addr.address)}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full,
+                        backgroundColor: selected ? colors.primary : colors.background,
+                        borderWidth: 1, borderColor: selected ? colors.primary : colors.border,
+                      }}
+                    >
+                      <Text style={{ fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: selected ? '#fff' : colors.mutedFg }}>
+                        {addr.address_type}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+              {value.address ? (
+                <Text style={{ fontSize: typography.size.sm, color: colors.foreground, padding: 10, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
+                  {value.address}
+                </Text>
+              ) : null}
+            </View>
+          ) : (
+            <FormField
+              label="Sender Address"
+              value={value.address}
+              onChangeText={v => set('address', v)}
+              placeholder="Full pickup address..."
+              multiline
+            />
+          )}
+        </View>
       )}
 
       {tab === 'crossing' && (
         <View>
+          <PartyCombobox
+            label="Crossing Agent"
+            value={value.crossing_agent_name}
+            onChange={v => set('crossing_agent_name', v)}
+            onSelect={party => onChange({ ...value, crossing_agent_name: party.legal_name, crossing_agent_id: party.id })}
+          />
           <FormField
-            label="Crossing Agent LR No."
+            label="Agent LR Number"
             value={value.crossing_agent_lr}
             onChangeText={v => set('crossing_agent_lr', v)}
             placeholder="LR number"
-          />
-          <FormField
-            label="Crossing Agent Name"
-            value={value.crossing_agent_name}
-            onChangeText={v => set('crossing_agent_name', v)}
-            placeholder="Agent name"
           />
         </View>
       )}

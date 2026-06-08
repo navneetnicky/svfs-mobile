@@ -15,7 +15,7 @@ type Props = {
 
 export function PartyCombobox({ label, value, onChange, onSelect, required }: Props) {
   const [open, setOpen] = useState(false)
-  const { query, setQuery, results, loading } = usePartySearch()
+  const { setQuery, results, loading } = usePartySearch()
 
   // Keep query in sync when typing
   useEffect(() => { setQuery(value) }, [value])
@@ -26,7 +26,7 @@ export function PartyCombobox({ label, value, onChange, onSelect, required }: Pr
   }
 
   return (
-    <View style={{ marginBottom: 12, zIndex: 100 }}>
+    <View style={{ marginBottom: 12, zIndex: open ? 999 : 1 }}>
       <View style={{ flexDirection: 'row', marginBottom: 4 }}>
         <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.medium, color: colors.mutedFg }}>
           {label}
