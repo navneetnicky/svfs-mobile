@@ -50,11 +50,12 @@ export const colors = {
   },
 
   // ─── Booking type ────────────────────────────────────────────────────────────
+  // Colors mirror the web app (svfs-FE BookingFormPage) Tailwind tokens
   bookingType: {
-    PAID:   { bg: '#dcfce7', text: '#16a34a' },   // green
-    TO_PAY: { bg: '#fef9c3', text: '#ca8a04' },   // yellow
-    TBB:    { bg: '#dbeafe', text: '#2563eb' },   // blue
-    FOC:    { bg: '#f3e8ff', text: '#9333ea' },   // purple
+    PAID:   { bg: '#d1fae5', border: '#6ee7b7', text: '#047857', accent: '#059669' },  // emerald-100/300/700/600
+    TO_PAY: { bg: '#fef3c7', border: '#fcd34d', text: '#b45309', accent: '#d97706' },  // amber-100/300/700/600
+    TBB:    { bg: '#dbeafe', border: '#93c5fd', text: '#1d4ed8', accent: '#2563eb' },  // blue-100/300/700/600
+    FOC:    { bg: '#e2e8f0', border: '#cbd5e1', text: '#475569', accent: '#64748b' },  // slate-200/300/600/500
   },
 } as const
 
