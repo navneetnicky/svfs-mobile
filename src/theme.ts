@@ -1,5 +1,5 @@
 /**
- * Design system — mirrors the svfs-fe web app token set (shadcn + Tailwind, hue 215 blue).
+ * Design system — mirrors the svfs-fe web app token set (shadcn + Tailwind, hue 215 sky-blue).
  * oklch values from index.css converted to sRGB hex.
  * All screens and components should source colors, typography, spacing, and radii from here.
  */
@@ -8,30 +8,30 @@
 
 export const colors = {
   // Semantic roles  (maps to web --primary, --background, etc.)
-  primary:           '#2563eb',   // oklch(0.45 0.14 215) — blue-600
+  primary:           '#075985',   // oklch(0.45 0.14 215) — sky-800
   primaryFg:         '#ffffff',   // oklch(1 0 0)
-  primaryLight:      '#eff6ff',   // blue-50
-  primaryMuted:      '#dbeafe',   // blue-100
+  primaryLight:      '#f0f9ff',   // oklch(~0.97 0.04 215) — sky-50
+  primaryMuted:      '#e0f2fe',   // oklch(~0.93 0.06 215) — sky-100
 
-  secondary:         '#e2e8f0',   // oklch(0.91 0.04 215) — slate-200
-  secondaryFg:       '#2563eb',
+  secondary:         '#e0f2fe',   // oklch(0.91 0.04 215) — sky-100
+  secondaryFg:       '#075985',   // sky-800
 
-  background:        '#f1f5f9',   // oklch(0.97 0.008 215) — slate-50
+  background:        '#f0f9ff',   // oklch(0.97 0.008 215) — sky-50 tint
   card:              '#ffffff',   // oklch(1 0 0)
-  cardFg:            '#0f172a',   // oklch(0.15 0.025 215) — slate-900
+  cardFg:            '#0c2d3c',   // oklch(0.15 0.025 215) — near-black sky
 
-  muted:             '#f1f5f9',   // oklch(0.95 0.008 215) — slate-50
-  mutedFg:           '#64748b',   // oklch(0.50 0.02 215)  — slate-500
+  muted:             '#e0f2fe',   // oklch(0.95 0.008 215) — sky-100
+  mutedFg:           '#4a7a8e',   // oklch(0.50 0.02 215)  — muted sky-blue
 
-  accent:            '#ccfbf1',   // oklch(0.88 0.055 185) — teal-100
+  accent:            '#99f6e4',   // oklch(0.88 0.055 185) — teal-200
   accentFg:          '#134e4a',   // oklch(0.25 0.05 185)  — teal-900
 
-  border:            '#e2e8f0',   // oklch(0.87 0.018 215) — slate-200
-  input:             '#e2e8f0',
-  ring:              '#2563eb',
+  border:            '#bae6fd',   // oklch(0.87 0.018 215) — sky-200
+  input:             '#bae6fd',   // sky-200
+  ring:              '#075985',   // sky-800
 
-  foreground:        '#0f172a',   // oklch(0.15 0.025 215) — slate-900
-  subtleFg:          '#94a3b8',   // slate-400
+  foreground:        '#0c2d3c',   // oklch(0.15 0.025 215) — near-black sky
+  subtleFg:          '#7ca8bc',   // muted sky-blue
 
   destructive:       '#ef4444',   // oklch(0.577 0.245 27) — red-500
   destructiveFg:     '#ffffff',

@@ -144,7 +144,7 @@ export default function BookingDetailScreen() {
 
       {isLoading && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color="#075985" />
         </View>
       )}
 
@@ -152,7 +152,7 @@ export default function BookingDetailScreen() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
           <Text style={{ color: '#dc2626', textAlign: 'center' }}>Failed to load booking details.</Text>
           <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
-            <Text style={{ color: '#2563eb', fontWeight: '600' }}>Go back</Text>
+            <Text style={{ color: '#075985', fontWeight: '600' }}>Go back</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -213,7 +213,7 @@ export default function BookingDetailScreen() {
             <View style={{ height: 1, backgroundColor: '#e4e4e7', marginVertical: 8 }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#09090b' }}>Grand Total</Text>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: '#2563eb' }}>₹{Number(booking.grand_total).toLocaleString('en-IN')}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: '#075985' }}>₹{Number(booking.grand_total).toLocaleString('en-IN')}</Text>
             </View>
           </Card>
 

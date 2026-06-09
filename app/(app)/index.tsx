@@ -50,7 +50,7 @@ function MenuModal({ visible, onClose, onLogout, userName, userEmail, initials, 
 
           {/* User info */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: border }}>
-            <View style={{ height: 42, width: 42, borderRadius: 21, backgroundColor: '#2563eb', alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ height: 42, width: 42, borderRadius: 21, backgroundColor: '#075985', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 15, fontWeight: '800', color: 'white' }}>{initials}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -65,8 +65,8 @@ function MenuModal({ visible, onClose, onLogout, userName, userEmail, initials, 
             activeOpacity={canSwitchBranch ? 0.7 : 1}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: branchOpen ? 0 : 1, borderBottomColor: border }}
           >
-            <View style={{ height: 36, width: 36, borderRadius: 12, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
-              <Ionicons name="business-outline" size={18} color="#2563eb" />
+            <View style={{ height: 36, width: 36, borderRadius: 12, backgroundColor: '#f0f9ff', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="business-outline" size={18} color="#075985" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 11, color: muted, marginBottom: 1 }}>Current Branch</Text>
@@ -74,7 +74,7 @@ function MenuModal({ visible, onClose, onLogout, userName, userEmail, initials, 
                 {activeBranch?.branch_name ?? 'Not set'}
               </Text>
               {activeBranch?.branch_code && (
-                <Text style={{ fontSize: 11, color: '#2563eb', marginTop: 1 }}>{activeBranch.branch_code}</Text>
+                <Text style={{ fontSize: 11, color: '#075985', marginTop: 1 }}>{activeBranch.branch_code}</Text>
               )}
             </View>
             {canSwitchBranch && (
@@ -94,14 +94,14 @@ function MenuModal({ visible, onClose, onLogout, userName, userEmail, initials, 
                     activeOpacity={0.7}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 11, borderTopWidth: i === 0 ? 1 : 0, borderTopColor: border }}
                   >
-                    <Ionicons name="git-branch-outline" size={15} color={isActive ? '#2563eb' : muted} />
+                    <Ionicons name="git-branch-outline" size={15} color={isActive ? '#075985' : muted} />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 13, fontWeight: isActive ? '700' : '500', color: isActive ? '#2563eb' : text }} numberOfLines={1}>
+                      <Text style={{ fontSize: 13, fontWeight: isActive ? '700' : '500', color: isActive ? '#075985' : text }} numberOfLines={1}>
                         {b.branch_name}
                       </Text>
                       <Text style={{ fontSize: 11, color: muted }}>{b.branch_code}</Text>
                     </View>
-                    {isActive && <Ionicons name="checkmark-circle" size={16} color="#2563eb" />}
+                    {isActive && <Ionicons name="checkmark-circle" size={16} color="#075985" />}
                   </TouchableOpacity>
                 )
               })}
@@ -212,7 +212,7 @@ export default function HomeScreen() {
 
         {/* ── Header ── */}
         <View
-          className="bg-blue-600 px-4 pb-20"
+          className="bg-sky-800 px-4 pb-20"
           style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32, marginTop: -top, paddingTop: top + 16 }}
         >
           <View className="flex-row items-center justify-between mb-5">
@@ -237,15 +237,15 @@ export default function HomeScreen() {
                   </Text>
                 )}
                 <View className="h-7 w-7 rounded-full bg-white items-center justify-center">
-                  <Text className="text-[10px] font-black text-blue-600">{initials}</Text>
+                  <Text className="text-[10px] font-black text-sky-800">{initials}</Text>
                 </View>
               </TouchableOpacity>
             </View>
           </View>
 
-          <Text className="text-blue-200 text-sm font-medium">{greet()}</Text>
+          <Text className="text-sky-200 text-sm font-medium">{greet()}</Text>
           <Text className="text-white text-2xl font-black mt-0.5">{firstName} 👋</Text>
-          <Text className="text-blue-300 text-xs mt-1">{today()}</Text>
+          <Text className="text-sky-300 text-xs mt-1">{today()}</Text>
         </View>
 
         {/* ── Revenue card ── */}
@@ -263,8 +263,8 @@ export default function HomeScreen() {
                   </Text>
               }
             </View>
-            <View className="h-10 w-10 rounded-xl bg-blue-50 items-center justify-center">
-              <Ionicons name="wallet-outline" size={20} color="#2563eb" />
+            <View className="h-10 w-10 rounded-xl bg-sky-50 items-center justify-center">
+              <Ionicons name="wallet-outline" size={20} color="#075985" />
             </View>
           </View>
         </View>
@@ -275,8 +275,8 @@ export default function HomeScreen() {
           <View className="flex-row gap-x-3">
             <MetricCard
               label="Today's Bookings" value={stats.todayBookings}
-              iconName="cube-outline" iconBg="bg-blue-50"
-              iconColor="#2563eb" valueColor="text-blue-600" loading={loading}
+              iconName="cube-outline" iconBg="bg-sky-50"
+              iconColor="#075985" valueColor="text-sky-800" loading={loading}
             />
             <MetricCard
               label="In Transit" value={stats.inTransit}
@@ -305,14 +305,14 @@ export default function HomeScreen() {
               <Text className="text-sm font-bold text-zinc-900">Recent Bookings</Text>
               <Text className="text-xs text-zinc-400 mt-0.5">Latest LR entries</Text>
             </View>
-            <TouchableOpacity onPress={() => router.push('/(app)/daily')} className="bg-blue-50 px-3 py-1.5 rounded-full">
-              <Text className="text-xs font-semibold text-blue-600">View all</Text>
+            <TouchableOpacity onPress={() => router.push('/(app)/daily')} className="bg-sky-50 px-3 py-1.5 rounded-full">
+              <Text className="text-xs font-semibold text-sky-800">View all</Text>
             </TouchableOpacity>
           </View>
 
           {loading ? (
             <View className="items-center justify-center py-12">
-              <ActivityIndicator color="#2563eb" size="large" />
+              <ActivityIndicator color="#075985" size="large" />
             </View>
           ) : recentBookings.length === 0 ? (
             <View className="items-center justify-center py-12 gap-y-3">
@@ -334,7 +334,7 @@ export default function HomeScreen() {
               >
                 {/* Row 1: LR number + amount */}
                 <View className="flex-row items-center justify-between mb-1">
-                  <Text className="text-xs font-black text-blue-600 tracking-wide">{b.lr_number}</Text>
+                  <Text className="text-xs font-black text-sky-800 tracking-wide">{b.lr_number}</Text>
                   <Text className="text-sm font-black text-zinc-900 tabular-nums">
                     ₹{Number(b.grand_total).toLocaleString('en-IN')}
                   </Text>

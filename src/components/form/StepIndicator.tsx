@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity } from 'react-native'
-import { colors, radius, typography } from '@/src/theme'
+import { colors, typography } from '@/src/theme'
 
 type Props = {
   steps: string[]
@@ -17,7 +17,7 @@ export function StepIndicator({ steps, current, onPress }: Props) {
           <View key={i} style={{ flex: 1, alignItems: 'center' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
               {i > 0 && (
-                <View style={{ flex: 1, height: 2, backgroundColor: done ? colors.primary : colors.border }} />
+                <View style={{ flex: 1, height: 2, backgroundColor: (done || active) ? colors.primary : colors.border }} />
               )}
               <TouchableOpacity
                 onPress={() => done && onPress?.(i)}
