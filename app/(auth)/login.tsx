@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   ActivityIndicator,
 } from 'react-native'
@@ -35,7 +34,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-white dark:bg-black"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
     >
       <ScrollView
         contentContainerClassName="flex-grow justify-center px-6 py-12"

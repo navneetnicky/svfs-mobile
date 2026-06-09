@@ -13,7 +13,7 @@ type Props = {
 
 export function ConsignmentCombobox({ value, onSelect, onChange }: Props) {
   const [open, setOpen] = useState(false)
-  const { query, setQuery, results, loading } = useConsignmentSearch()
+  const { setQuery, results, loading } = useConsignmentSearch()
 
   useEffect(() => { setQuery(value) }, [value])
 
@@ -23,7 +23,7 @@ export function ConsignmentCombobox({ value, onSelect, onChange }: Props) {
   }
 
   return (
-    <View style={{ marginBottom: 12, zIndex: 100 }}>
+    <View style={{ marginBottom: 12, zIndex: open ? 999 : 1 }}>
       <View style={{ flexDirection: 'row', marginBottom: 4 }}>
         <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.medium, color: colors.mutedFg }}>
           Consignment
@@ -56,10 +56,10 @@ export function ConsignmentCombobox({ value, onSelect, onChange }: Props) {
           position: 'absolute', top: 68, left: 0, right: 0,
           backgroundColor: colors.card, borderRadius: radius.lg,
           borderWidth: 1, borderColor: colors.border,
-          maxHeight: 180, zIndex: 200, elevation: 10,
+          maxHeight: 180, overflow: 'hidden', zIndex: 200, elevation: 10,
           shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12,
         }}>
-          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator style={{ flex: 1 }}>
             {results.map((record, index) => (
               <TouchableOpacity
                 key={record.id}

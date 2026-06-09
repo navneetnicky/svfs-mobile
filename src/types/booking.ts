@@ -59,6 +59,13 @@ export interface BookingInvoice {
   eway_bill: string
   inv_no: string
   inv_amt: string
+  valid_upto?: string
+}
+
+export interface BookingCharge {
+  charge_id: string
+  charge_type: string
+  amount: number
 }
 
 export interface BookingInsurance {
@@ -83,6 +90,7 @@ export interface BookingFormData {
   sender_mobile?: string
   sender_gstin?: string | null
   sender_address?: string
+  sender_place_id?: string | null
   invoices?: BookingInvoice[]
   crossing_agent_lr?: string | null
   crossing_agent_id?: string | null
@@ -97,18 +105,14 @@ export interface BookingFormData {
   receiver_mobile?: string
   receiver_gstin?: string | null
   receiver_address?: string
+  receiver_place_id?: string | null
   receiver_address_type?: string | null
 
   // Items
   items: { pkg_count?: number; consignment_id?: string; description?: string; unit: string; actual_weight?: number; charged_weight?: number; rate?: number; total?: number }[]
 
   // Charges
-  freight: number
-  labour_charge: number
-  delivery_charge: number
-  agent_charge: number
-  taxi_charge: number
-  bilty_charge: number
+  other_charges: BookingCharge[]
   cod: number
   grand_total: number
   gst_paid_by?: string
@@ -124,6 +128,7 @@ export interface BookingListParams {
   company_id?: string
   branch_id?: string
   search?: string
+  status?: string
   start_date?: string
   end_date?: string
 }

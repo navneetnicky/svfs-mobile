@@ -7,9 +7,12 @@ import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useCreateBooking } from '@hooks/useBookings'
 import { useCreditInfo } from '@hooks/useCreditInfo'
+import { useChargesMaster } from '@hooks/useChargesMaster'
 import { useAppSelector } from '@/src/store/hooks'
 import type { BookingType, BookingFormData } from '@/src/types/booking'
 import type { PartyAddress } from '@/src/services/partyService'
+import type { EwayBillDetails } from '@/src/services/ewayBillService'
+import { EwayBillField } from '@/src/components/form/EwayBillField'
 import { colors, radius, typography } from '@/src/theme'
 import { BookingFooterBar } from '@/src/components/form/BookingFooterBar'
 import { StepIndicator } from '@/src/components/form/StepIndicator'
@@ -104,13 +107,9 @@ export default function BookingCreateScreen() {
   // Step 3 — Items
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()])
 
-  // Step 4 — Charges
-  const [freight,        setFreight]        = useState('')
-  const [labourCharge,   setLabourCharge]   = useState('')
-  const [deliveryCharge, setDeliveryCharge] = useState('')
-  const [agentCharge,    setAgentCharge]    = useState('')
-  const [taxiCharge,     setTaxiCharge]     = useState('')
-  const [biltyCharge,    setBiltyCharge]    = useState('')
+  // Step 4 — Charges (dynamic from Charges Master)
+  const { data: charges = [], isLoading: chargesLoading } = useChargesMaster()
+  const [chargeAmounts, setChargeAmounts] = useState<Record<string, string>>({})
 
   // Persistent bottom bar state
   const [gstPaidBy, setGstPaidBy] = useState('Exempt')
@@ -124,13 +123,28 @@ export default function BookingCreateScreen() {
     if (['PKT', 'BOX', 'PCS'].includes(it.unit)) return sum + d(it.pkg_count) * rate
     return sum + d(it.charged_weight || it.actual_weight) * rate
   }, 0)
-  const chargesTotal = d(freight) + d(labourCharge) + d(deliveryCharge) + d(agentCharge) + d(taxiCharge) + d(biltyCharge) + d(senderExtra.cod)
+  const chargesTotal = charges.reduce((sum, c) => sum + parseFloat(chargeAmounts[c.id] || '0'), 0) + d(senderExtra.cod)
   const grandTotal   = itemsTotal + chargesTotal
 
   function handleBookingTypeChange(t: BookingType) {
     setBookingType(t)
     if (t === 'TBB' || t === 'FOC') setGstPaidBy('Exempt')
     if (t !== 'TBB') { setBillPartyId(null); setBillPartyName('') }
+  }
+
+  function handleEwbValidated(details: EwayBillDetails) {
+    setSenderExtra(prev => ({
+      ...prev,
+      invoices: prev.invoices.map((inv, i) => i === 0 ? {
+        ...inv,
+        eway_bill:  String(details.ewbNo ?? ewayBillNo),
+        inv_no:     details.docNo    || inv.inv_no,
+        inv_amt:    details.totalValue ? String(details.totalValue) : inv.inv_amt,
+        valid_upto: details.validUpto  || inv.valid_upto,
+      } : inv),
+    }))
+    if (!senderName.trim()   && details.fromTrdName) setSenderName(details.fromTrdName)
+    if (!receiverName.trim() && details.toTrdName)   setReceiverName(details.toTrdName)
   }
 
   function toggleGst(val: string) {
@@ -175,6 +189,7 @@ export default function BookingCreateScreen() {
       sender_mobile:     senderMobile.trim()  || undefined,
       sender_gstin:      senderGstin.trim()   || undefined,
       sender_address:    senderExtra.address.trim() || undefined,
+      sender_place_id:   senderExtra.place_id || undefined,
       invoices:          senderExtra.invoices.filter(inv => inv.inv_no || inv.eway_bill),
       crossing_agent_lr: senderExtra.crossing_agent_lr.trim() || undefined,
       crossing_agent_id: senderExtra.crossing_agent_id || undefined,
@@ -184,7 +199,8 @@ export default function BookingCreateScreen() {
       receiver_name:        receiverName.trim(),
       receiver_mobile:      receiverMobile.trim() || undefined,
       receiver_gstin:       receiverGstin.trim()  || undefined,
-      receiver_address:     receiverExtra.address.trim() || undefined,
+      receiver_address:      receiverExtra.address.trim() || undefined,
+      receiver_place_id:     receiverExtra.place_id || undefined,
       receiver_address_type: receiverExtra.address_type || undefined,
 
       items: items
@@ -199,13 +215,12 @@ export default function BookingCreateScreen() {
           rate:           it.rate           ? d(it.rate)           : undefined,
         })),
 
-      freight:         d(freight),
-      labour_charge:   d(labourCharge),
-      delivery_charge: d(deliveryCharge),
-      agent_charge:    d(agentCharge),
-      taxi_charge:     d(taxiCharge),
-      bilty_charge:    d(biltyCharge),
-      cod:             d(senderExtra.cod),
+      other_charges: charges.map(c => ({
+        charge_id:   c.id,
+        charge_type: c.charge_type,
+        amount:      parseFloat(chargeAmounts[c.id] || '0'),
+      })),
+      cod:           d(senderExtra.cod),
       grand_total:     grandTotal,
       gst_paid_by:     gstPaidBy || undefined,
       remarks:         remarks.trim() || undefined,
@@ -330,12 +345,10 @@ export default function BookingCreateScreen() {
                   required
                 />
               )}
-              <FormField
-                label="E-Way Bill No."
+              <EwayBillField
                 value={ewayBillNo}
                 onChangeText={setEwayBillNo}
-                placeholder="12-digit EWB number"
-                keyboardType="numeric"
+                onValidated={handleEwbValidated}
               />
             </SectionCard>
           )}
@@ -354,7 +367,7 @@ export default function BookingCreateScreen() {
                   setSenderGstin(party.gst_number ?? '')
                   setSenderPartyId(party.id)
                   setSenderSavedAddresses(party.partyAddresses ?? [])
-                  setSenderExtra(prev => ({ ...prev, address: '' }))
+                  setSenderExtra(prev => ({ ...prev, address: '', place_id: '' }))
                 }}
                 required
               />
@@ -379,7 +392,7 @@ export default function BookingCreateScreen() {
                   setReceiverGstin(party.gst_number ?? '')
                   setReceiverPartyId(party.id)
                   setReceiverSavedAddresses(party.partyAddresses ?? [])
-                  setReceiverExtra(prev => ({ ...prev, address: '' }))
+                  setReceiverExtra(prev => ({ ...prev, address: '', place_id: '' }))
                 }}
                 required
               />
@@ -403,12 +416,19 @@ export default function BookingCreateScreen() {
             <>
               <SectionCard>
                 <SectionTitle title="Charges" />
-                <ChargeRow label="Freight (₹)"         value={freight}        onChange={setFreight} />
-                <ChargeRow label="Labour Charge (₹)"   value={labourCharge}   onChange={setLabourCharge} />
-                <ChargeRow label="Delivery Charge (₹)" value={deliveryCharge} onChange={setDeliveryCharge} />
-                <ChargeRow label="Agent Charge (₹)"    value={agentCharge}    onChange={setAgentCharge} />
-                <ChargeRow label="Taxi Charge (₹)"     value={taxiCharge}     onChange={setTaxiCharge} />
-                <ChargeRow label="Bilty Charge (₹)"    value={biltyCharge}    onChange={setBiltyCharge} />
+                {chargesLoading
+                  ? <Text style={{ color: colors.subtleFg, fontSize: typography.size.sm, textAlign: 'center', paddingVertical: 12 }}>Loading charges…</Text>
+                  : charges.length > 0
+                    ? charges.map(c => (
+                        <ChargeRow
+                          key={c.id}
+                          label={`${c.charge_type} (₹)`}
+                          value={chargeAmounts[c.id] ?? ''}
+                          onChange={v => setChargeAmounts(prev => ({ ...prev, [c.id]: v }))}
+                        />
+                      ))
+                    : <Text style={{ color: colors.subtleFg, fontSize: typography.size.sm, textAlign: 'center', paddingVertical: 12 }}>No charges configured</Text>
+                }
               </SectionCard>
 
               <SectionCard>

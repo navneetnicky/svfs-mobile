@@ -18,6 +18,7 @@ export interface PartyRecord {
   gst_number: string | null
   contacts: PartyContact[]
   partyAddresses: PartyAddress[]
+  locationMaster?: { id: number; address: string; place_id: string } | null
 }
 
 export const partyService = {

@@ -63,7 +63,7 @@ export function CityPicker({ value, onSelect, required }: Props) {
           position: 'absolute', top: 68, left: 0, right: 0,
           backgroundColor: colors.card, borderRadius: radius.lg,
           borderWidth: 1, borderColor: colors.border,
-          maxHeight: 220, zIndex: 200, elevation: 10,
+          maxHeight: 220, overflow: 'hidden', zIndex: 200, elevation: 10,
           shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12,
         }}>
           {isLoading ? (
@@ -75,7 +75,7 @@ export function CityPicker({ value, onSelect, required }: Props) {
               <Text style={{ color: colors.subtleFg, fontSize: typography.size.sm }}>No cities found</Text>
             </View>
           ) : (
-            <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator={false}>
+            <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator style={{ flex: 1 }}>
               {filtered.map((item, index) => (
                 <TouchableOpacity
                   key={item.id}

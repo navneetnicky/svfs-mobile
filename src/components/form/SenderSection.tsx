@@ -10,6 +10,7 @@ import type { BookingInvoice, BookingInsurance } from '@/src/types/booking'
 export interface SenderExtra {
   invoices: BookingInvoice[]
   address: string
+  place_id: string
   crossing_agent_lr: string
   crossing_agent_name: string
   crossing_agent_id: string
@@ -22,6 +23,7 @@ export function emptySenderExtra(): SenderExtra {
   return {
     invoices: [{ eway_bill: '', inv_no: '', inv_amt: '' }],
     address: '',
+    place_id: '',
     crossing_agent_lr: '',
     crossing_agent_name: '',
     crossing_agent_id: '',
@@ -29,6 +31,21 @@ export function emptySenderExtra(): SenderExtra {
     cod: '',
     document_note: '',
   }
+}
+
+function buildAddressLabels(addrs: PartyAddress[]): { addr: PartyAddress; label: string }[] {
+  const filtered = addrs.filter(a => a.address?.trim())
+  const typeCounts: Record<string, number> = {}
+  filtered.forEach(a => { typeCounts[a.address_type] = (typeCounts[a.address_type] ?? 0) + 1 })
+  const typeIdx: Record<string, number> = {}
+  return filtered.map(addr => {
+    const base = addr.address_type === 'GODOWN' ? 'Godown' : 'Door'
+    if (typeCounts[addr.address_type] > 1) {
+      typeIdx[addr.address_type] = (typeIdx[addr.address_type] ?? 0) + 1
+      return { addr, label: `${base} ${typeIdx[addr.address_type]}` }
+    }
+    return { addr, label: base }
+  })
 }
 
 type Tab = 'invoice' | 'address' | 'crossing' | 'insurance' | 'cod' | 'document'
@@ -71,6 +88,7 @@ export function SenderSection({ value, onChange, savedAddresses }: Props) {
   function updateInsurance(field: keyof BookingInsurance, v: string) {
     set('insurance', { ...value.insurance, [field]: v })
   }
+
 
   return (
     <View>
@@ -148,6 +166,14 @@ export function SenderSection({ value, onChange, savedAddresses }: Props) {
                   />
                 </View>
               </View>
+              {inv.valid_upto ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -4, marginBottom: 8 }}>
+                  <Ionicons name="time-outline" size={11} color={colors.success} />
+                  <Text style={{ fontSize: typography.size.xs, color: colors.success, fontWeight: typography.weight.medium }}>
+                    Valid upto {inv.valid_upto}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           ))}
           <TouchableOpacity
@@ -169,31 +195,31 @@ export function SenderSection({ value, onChange, savedAddresses }: Props) {
               <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.medium, color: colors.mutedFg, marginBottom: 8 }}>
                 Saved Addresses
               </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                {savedAddresses.map(addr => {
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                {buildAddressLabels(savedAddresses).map(({ addr, label }) => {
                   const selected = value.address === addr.address
                   return (
                     <TouchableOpacity
                       key={addr.id}
-                      onPress={() => set('address', addr.address)}
+                      onPress={() => onChange({ ...value, address: addr.address, place_id: addr.place_id ?? '' })}
                       style={{
+                        flexDirection: 'row', alignItems: 'center', gap: 4,
                         paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full,
                         backgroundColor: selected ? colors.primary : colors.background,
                         borderWidth: 1, borderColor: selected ? colors.primary : colors.border,
                       }}
                     >
+                      <Ionicons name="location-outline" size={11} color={selected ? '#fff' : colors.mutedFg} />
                       <Text style={{ fontSize: typography.size.xs, fontWeight: typography.weight.semibold, color: selected ? '#fff' : colors.mutedFg }}>
-                        {addr.address_type}
+                        {label}
                       </Text>
                     </TouchableOpacity>
                   )
                 })}
               </View>
-              {value.address ? (
-                <Text style={{ fontSize: typography.size.sm, color: colors.foreground, padding: 10, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background }}>
-                  {value.address}
-                </Text>
-              ) : null}
+              <Text style={{ fontSize: typography.size.xs, color: colors.subtleFg, marginBottom: 4, paddingHorizontal: 2 }} numberOfLines={2}>
+                {value.address || 'Tap a pill to select an address'}
+              </Text>
             </View>
           ) : (
             <FormField

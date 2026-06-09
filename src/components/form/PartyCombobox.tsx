@@ -60,10 +60,10 @@ export function PartyCombobox({ label, value, onChange, onSelect, required }: Pr
           position: 'absolute', top: 68, left: 0, right: 0,
           backgroundColor: colors.card, borderRadius: radius.lg,
           borderWidth: 1, borderColor: colors.border,
-          maxHeight: 200, zIndex: 200, elevation: 10,
+          maxHeight: 200, overflow: 'hidden', zIndex: 200, elevation: 10,
           shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12,
         }}>
-          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator style={{ flex: 1 }}>
             {results.map((party, index) => (
               <TouchableOpacity
                 key={party.id}
@@ -88,9 +88,13 @@ export function PartyCombobox({ label, value, onChange, onSelect, required }: Pr
                   <Text style={{ fontSize: typography.size.base, fontWeight: typography.weight.semibold, color: colors.foreground }} numberOfLines={1}>
                     {party.legal_name}
                   </Text>
-                  {party.contacts?.[0]?.phone && (
+                  {party.locationMaster?.address ? (
+                    <Text style={{ fontSize: typography.size.xs, color: colors.subtleFg }} numberOfLines={1}>
+                      {party.locationMaster.address}
+                    </Text>
+                  ) : party.contacts?.[0]?.phone ? (
                     <Text style={{ fontSize: typography.size.xs, color: colors.subtleFg }}>{party.contacts[0].phone}</Text>
-                  )}
+                  ) : null}
                 </View>
                 {party.gst_number && (
                   <Text style={{ fontSize: 9, color: colors.mutedFg, fontFamily: 'monospace' }} numberOfLines={1}>
