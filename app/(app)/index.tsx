@@ -187,17 +187,17 @@ export default function HomeScreen() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
   const month      = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
-  const { data: recentData,  isLoading: loadingRecent  } = useBookingList({ limit: 5 })
-  const { data: todayData,   isLoading: loadingToday   } = useBookingList({ start_date: todayStr,   end_date: todayStr, limit: 1 })
-  const { data: monthData,   isLoading: loadingMonth   } = useBookingList({ start_date: monthStart, end_date: todayStr, limit: 200 })
-  const { data: transitData, isLoading: loadingTransit } = useBookingList({ status: 'IN_TRANSIT', limit: 1 })
+  const { data: recentData, isLoading: loadingRecent } = useBookingList({ limit: 5 })
+  const { data: todayData,  isLoading: loadingToday  } = useBookingList({ start_date: todayStr,   end_date: todayStr, limit: 1 })
+  const { data: allData,    isLoading: loadingAll    } = useBookingList({ limit: 200 })
+  const { data: monthData,  isLoading: loadingMonth  } = useBookingList({ start_date: monthStart, end_date: todayStr, limit: 200 })
 
-  const loading      = loadingRecent || loadingToday || loadingMonth || loadingTransit
+  const loading        = loadingRecent || loadingToday || loadingAll || loadingMonth
   const recentBookings = recentData?.data ?? []
   const stats = {
-    todayBookings:    todayData?.total  ?? 0,
-    inTransit:        transitData?.total ?? 0,
-    totalLRs:         monthData?.total  ?? 0,
+    todayBookings:    todayData?.total ?? 0,
+    inTransit:        (allData?.data ?? []).filter(b => b.in_transit_at && !b.delivered_at).length,
+    totalLRs:         monthData?.total ?? 0,
     monthRevenue:     monthData?.data.reduce((sum, b) => sum + (Number(b.grand_total) || 0), 0) ?? 0,
     challansReceived: 0,
   }

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import {
   ScrollView, View, Text, TouchableOpacity,
-  Alert, KeyboardAvoidingView,
+  KeyboardAvoidingView,
 } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useCreateBooking } from '@hooks/useBookings'
 import { useCreditInfo } from '@hooks/useCreditInfo'
-import { useChargesMaster } from '@hooks/useChargesMaster'
 import { useAppSelector } from '@/src/store/hooks'
 import type { BookingType, BookingFormData } from '@/src/types/booking'
 import type { PartyAddress } from '@/src/services/partyService'
@@ -24,6 +23,7 @@ import { GstinField } from '@/src/components/form/GstinField'
 import { ItemsEditor, emptyItem, type ItemDraft } from '@/src/components/form/ItemsEditor'
 import { SenderSection, emptySenderExtra, type SenderExtra } from '@/src/components/form/SenderSection'
 import { ReceiverSection, emptyReceiverExtra, type ReceiverExtra } from '@/src/components/form/ReceiverSection'
+import { BookingSuccessOverlay } from '@/src/components/BookingSuccessOverlay'
 
 const STEPS = ['Booking', 'Sender', 'Receiver', 'Items', 'Charges']
 
@@ -59,12 +59,6 @@ function SectionTitle({ title }: { title: string }) {
   )
 }
 
-function ChargeRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <FormField label={label} value={value} onChangeText={onChange} placeholder="0" keyboardType="numeric" />
-  )
-}
-
 export default function BookingCreateScreen() {
   const { mutate: createBooking, isPending } = useCreateBooking()
   const activeBranch = useAppSelector(s => s.workspace.activeBranch)
@@ -72,6 +66,7 @@ export default function BookingCreateScreen() {
 
   const [step, setStep] = useState(0)
   const [stepError, setStepError] = useState<string | null>(null)
+  const [successLr, setSuccessLr] = useState<string | null>(null)
   const [now, setNow] = useState(new Date())
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60_000)
@@ -107,10 +102,6 @@ export default function BookingCreateScreen() {
   // Step 3 — Items
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()])
 
-  // Step 4 — Charges (dynamic from Charges Master)
-  const { data: charges = [], isLoading: chargesLoading } = useChargesMaster()
-  const [chargeAmounts, setChargeAmounts] = useState<Record<string, string>>({})
-
   // Persistent bottom bar state
   const [gstPaidBy, setGstPaidBy] = useState('Exempt')
   const [remarks,   setRemarks]   = useState('')
@@ -123,7 +114,7 @@ export default function BookingCreateScreen() {
     if (['PKT', 'BOX', 'PCS'].includes(it.unit)) return sum + d(it.pkg_count) * rate
     return sum + d(it.charged_weight || it.actual_weight) * rate
   }, 0)
-  const chargesTotal = charges.reduce((sum, c) => sum + parseFloat(chargeAmounts[c.id] || '0'), 0) + d(senderExtra.cod)
+  const chargesTotal = d(senderExtra.cod)
   const grandTotal   = itemsTotal + chargesTotal
 
   function handleBookingTypeChange(t: BookingType) {
@@ -205,21 +196,24 @@ export default function BookingCreateScreen() {
 
       items: items
         .filter(it => it.description.trim() || it.pkg_count || it.consignment_name)
-        .map(it => ({
-          pkg_count:      it.pkg_count      ? parseInt(it.pkg_count)  : undefined,
-          consignment_id: it.consignment_id || undefined,
-          description:    it.description.trim() || undefined,
-          unit:           it.unit || 'PKT',
-          actual_weight:  it.actual_weight  ? d(it.actual_weight)  : undefined,
-          charged_weight: it.charged_weight ? d(it.charged_weight) : undefined,
-          rate:           it.rate           ? d(it.rate)           : undefined,
-        })),
+        .map(it => {
+          const rate = d(it.rate)
+          const total = ['PKT', 'BOX', 'PCS'].includes(it.unit)
+            ? d(it.pkg_count) * rate
+            : d(it.charged_weight || it.actual_weight) * rate
+          return {
+            pkg_count:      it.pkg_count      ? parseInt(it.pkg_count)  : undefined,
+            consignment_id: it.consignment_id || undefined,
+            description:    it.description.trim() || undefined,
+            unit:           it.unit || 'PKT',
+            actual_weight:  it.actual_weight  ? d(it.actual_weight)  : undefined,
+            charged_weight: it.charged_weight ? d(it.charged_weight) : undefined,
+            rate:           rate              || undefined,
+            total:          total             || undefined,
+          }
+        }),
 
-      other_charges: charges.map(c => ({
-        charge_id:   c.id,
-        charge_type: c.charge_type,
-        amount:      parseFloat(chargeAmounts[c.id] || '0'),
-      })),
+      other_charges: [],
       cod:           d(senderExtra.cod),
       grand_total:     grandTotal,
       gst_paid_by:     gstPaidBy || undefined,
@@ -227,7 +221,7 @@ export default function BookingCreateScreen() {
     }
 
     createBooking(payload, {
-      onSuccess: () => Alert.alert('Success', 'Booking created successfully.', [{ text: 'OK', onPress: () => router.back() }]),
+      onSuccess: (data) => setSuccessLr(data.lr_number),
       onError:   () => setStepError('Failed to create booking. Please try again.'),
     })
   }
@@ -415,23 +409,6 @@ export default function BookingCreateScreen() {
           {step === 4 && (
             <>
               <SectionCard>
-                <SectionTitle title="Charges" />
-                {chargesLoading
-                  ? <Text style={{ color: colors.subtleFg, fontSize: typography.size.sm, textAlign: 'center', paddingVertical: 12 }}>Loading charges…</Text>
-                  : charges.length > 0
-                    ? charges.map(c => (
-                        <ChargeRow
-                          key={c.id}
-                          label={`${c.charge_type} (₹)`}
-                          value={chargeAmounts[c.id] ?? ''}
-                          onChange={v => setChargeAmounts(prev => ({ ...prev, [c.id]: v }))}
-                        />
-                      ))
-                    : <Text style={{ color: colors.subtleFg, fontSize: typography.size.sm, textAlign: 'center', paddingVertical: 12 }}>No charges configured</Text>
-                }
-              </SectionCard>
-
-              <SectionCard>
                 <SectionTitle title="Summary" />
                 {([['Items Total', itemsTotal], ['Charges Total', chargesTotal]] as const).map(([label, amt]) => (
                   <View key={label} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 }}>
@@ -471,6 +448,13 @@ export default function BookingCreateScreen() {
         />
 
       </View>
+
+      {successLr != null && (
+        <BookingSuccessOverlay
+          lrNumber={successLr}
+          onDone={() => router.back()}
+        />
+      )}
     </KeyboardAvoidingView>
   )
 }

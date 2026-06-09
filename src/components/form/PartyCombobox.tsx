@@ -17,7 +17,6 @@ export function PartyCombobox({ label, value, onChange, onSelect, required }: Pr
   const [open, setOpen] = useState(false)
   const { setQuery, results, loading } = usePartySearch()
 
-  // Keep query in sync when typing
   useEffect(() => { setQuery(value) }, [value])
 
   function handleSelect(party: PartyRecord) {
@@ -60,10 +59,10 @@ export function PartyCombobox({ label, value, onChange, onSelect, required }: Pr
           position: 'absolute', top: 68, left: 0, right: 0,
           backgroundColor: colors.card, borderRadius: radius.lg,
           borderWidth: 1, borderColor: colors.border,
-          maxHeight: 200, overflow: 'hidden', zIndex: 200, elevation: 10,
+          maxHeight: 200, zIndex: 200, elevation: 10,
           shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12,
         }}>
-          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator style={{ flex: 1 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator style={{ maxHeight: 200 }}>
             {results.map((party, index) => (
               <TouchableOpacity
                 key={party.id}

@@ -59,7 +59,7 @@ export function ConsignmentCombobox({ value, onSelect, onChange }: Props) {
           maxHeight: 180, overflow: 'hidden', zIndex: 200, elevation: 10,
           shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12,
         }}>
-          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator style={{ flex: 1 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator style={{ maxHeight: 180 }}>
             {results.map((record, index) => (
               <TouchableOpacity
                 key={record.id}
