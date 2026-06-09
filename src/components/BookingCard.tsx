@@ -100,7 +100,9 @@ export function BookingCard({ item, onPress }: Props) {
             )}
           </View>
           <Text style={{ fontSize: 16, fontWeight: '900', color: colors.primary, flexShrink: 0 }}>
-            ₹{Number(item.grand_total).toLocaleString('en-IN')}
+            {item.grand_total != null
+              ? `₹${parseFloat(String(item.grand_total)).toLocaleString('en-IN')}`
+              : '—'}
           </Text>
         </View>
       </View>

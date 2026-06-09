@@ -39,14 +39,14 @@ export interface BookingRecord {
   receiver_mobile?: string
   receiver_address?: string
   items: BookingItem[]
-  freight: number
-  labour_charge: number
-  delivery_charge: number
-  agent_charge: number
-  taxi_charge: number
-  bilty_charge: number
-  cod: number
-  grand_total: number
+  freight: number | string | null
+  labour_charge: number | string | null
+  delivery_charge: number | string | null
+  agent_charge: number | string | null
+  taxi_charge: number | string | null
+  bilty_charge: number | string | null
+  cod: number | string | null
+  grand_total: number | string | null
   gst_paid_by?: string
   remarks?: string
   company_id: string
