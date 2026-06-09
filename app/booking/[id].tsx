@@ -2,53 +2,86 @@ import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity } from 'rea
 import { useLocalSearchParams, router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useBooking } from '@hooks/useBookings'
-import type { BookingStatus, BookingType } from '@/src/types/booking'
+import { useRefreshControl } from '@hooks/useRefreshControl'
+import type { BookingStatus, BookingRecord } from '@/src/types/booking'
+import { normalizeStatus } from '@/src/types/booking'
+import { colors } from '@/src/theme'
 
-const TYPE_COLORS: Record<BookingType, { bg: string; text: string }> = {
-  PAID:   { bg: '#dcfce7', text: '#16a34a' },
-  TO_PAY: { bg: '#fef9c3', text: '#ca8a04' },
-  TBB:    { bg: '#dbeafe', text: '#2563eb' },
-  FOC:    { bg: '#f3e8ff', text: '#9333ea' },
+type StepConfig = {
+  key: BookingStatus
+  label: string
+  sub: string
+  icon: React.ComponentProps<typeof Ionicons>['name']
+  color: string
+  tsKey: keyof BookingRecord
 }
 
-const STATUS_COLORS: Record<BookingStatus, { bg: string; text: string }> = {
-  booked:     { bg: '#dbeafe', text: '#2563eb' },
-  in_transit: { bg: '#fef9c3', text: '#ca8a04' },
-  delivered:  { bg: '#dcfce7', text: '#16a34a' },
-  cancelled:  { bg: '#fee2e2', text: '#dc2626' },
-}
+const STATUS_STEPS: StepConfig[] = [
+  { key: 'CREATED',            label: 'Booking Created',    sub: 'Order placed at branch',         icon: 'cube-outline',     color: colors.status.CREATED.accent,            tsKey: 'booked_at' },
+  { key: 'IN_TRANSIT',         label: 'In Transit',         sub: 'Shipment dispatched via challan', icon: 'car-outline',      color: colors.status.IN_TRANSIT.accent,         tsKey: 'in_transit_at' },
+  { key: 'RECEIVED_AT_BRANCH', label: 'Received at Branch', sub: 'Nearby branch received parcel',  icon: 'business-outline', color: colors.status.RECEIVED_AT_BRANCH.accent, tsKey: 'received_at_branch_at' },
+  { key: 'OUT_FOR_DELIVERY',   label: 'Out for Delivery',   sub: 'Driver started delivery route',  icon: 'navigate-outline', color: colors.status.OUT_FOR_DELIVERY.accent,   tsKey: 'out_for_delivery_at' },
+  { key: 'DELIVERED',          label: 'Delivered',          sub: 'Customer received the parcel',   icon: 'checkmark-circle', color: colors.status.DELIVERED.accent,          tsKey: 'delivered_at' },
+]
 
-const STATUS_STEPS: BookingStatus[] = ['booked', 'in_transit', 'delivered']
+const STATUS_ORDER = STATUS_STEPS.map(s => s.key)
 
-function StatusTimeline({ status }: { status: BookingStatus }) {
-  const activeIdx = STATUS_STEPS.indexOf(status)
+function StatusTimeline({ booking }: { booking: BookingRecord }) {
+  const status    = normalizeStatus(booking.status)
+  const activeIdx = STATUS_ORDER.indexOf(status)
+
+  if (status === 'CANCELLED') {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: '#fee2e2', borderRadius: 10 }}>
+        <Ionicons name="close-circle" size={22} color="#dc2626" />
+        <View>
+          <Text style={{ fontSize: 14, fontWeight: '700', color: '#dc2626' }}>Booking Cancelled</Text>
+          <Text style={{ fontSize: 12, color: '#b91c1c', marginTop: 1 }}>This booking has been cancelled</Text>
+        </View>
+      </View>
+    )
+  }
+
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16 }}>
-      {STATUS_STEPS.map((s, i) => {
-        const done = i <= activeIdx && status !== 'cancelled'
+    <View style={{ paddingVertical: 4 }}>
+      {STATUS_STEPS.map((step, i) => {
+        const done    = i <= activeIdx
+        const active  = i === activeIdx
+        const ts      = booking[step.tsKey] as string | null | undefined
+        const fmtTs   = ts ? new Date(ts).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null
+
         return (
-          <View key={s} style={{ flex: 1, alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-              {i > 0 && (
-                <View style={{ flex: 1, height: 2, backgroundColor: done ? '#2563eb' : '#e4e4e7' }} />
-              )}
+          <View key={step.key} style={{ flexDirection: 'row', minHeight: 56 }}>
+            {/* left column: circle + line */}
+            <View style={{ width: 36, alignItems: 'center' }}>
               <View style={{
-                width: 28, height: 28, borderRadius: 14,
-                backgroundColor: done ? '#2563eb' : '#e4e4e7',
+                width: 32, height: 32, borderRadius: 16,
+                backgroundColor: done ? step.color : '#e4e4e7',
                 alignItems: 'center', justifyContent: 'center',
+                borderWidth: active ? 2 : 0,
+                borderColor: active ? step.color : 'transparent',
               }}>
-                {done
-                  ? <Ionicons name="checkmark" size={14} color="white" />
-                  : <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#a1a1aa' }} />
-                }
+                <Ionicons
+                  name={done ? step.icon : 'ellipse-outline'}
+                  size={done ? 16 : 12}
+                  color={done ? 'white' : '#a1a1aa'}
+                />
               </View>
               {i < STATUS_STEPS.length - 1 && (
-                <View style={{ flex: 1, height: 2, backgroundColor: i < activeIdx && status !== 'cancelled' ? '#2563eb' : '#e4e4e7' }} />
+                <View style={{ flex: 1, width: 2, backgroundColor: i < activeIdx ? step.color : '#e4e4e7', marginTop: 2 }} />
               )}
             </View>
-            <Text style={{ fontSize: 10, color: done ? '#2563eb' : '#a1a1aa', marginTop: 6, textAlign: 'center' }}>
-              {s.replace('_', ' ')}
-            </Text>
+
+            {/* right column: text */}
+            <View style={{ flex: 1, paddingLeft: 12, paddingBottom: 20 }}>
+              <Text style={{ fontSize: 13, fontWeight: active ? '700' : '600', color: done ? '#09090b' : '#a1a1aa' }}>
+                {step.label}
+              </Text>
+              <Text style={{ fontSize: 11, color: done ? '#71717a' : '#d4d4d8', marginTop: 1 }}>{step.sub}</Text>
+              {fmtTs && (
+                <Text style={{ fontSize: 10, color: step.color, marginTop: 3, fontWeight: '500' }}>{fmtTs}</Text>
+              )}
+            </View>
           </View>
         )
       })}
@@ -80,11 +113,12 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { data: booking, isLoading, error } = useBooking(id)
+  const { data: booking, isLoading, isRefetching, refetch, error } = useBooking(id)
+  const refreshControl = useRefreshControl(isRefetching, refetch)
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f4f4f5' }}>
-      <View style={{ backgroundColor: 'white', paddingTop: 56, paddingBottom: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f4f4f5' }}>
+      <View style={{ backgroundColor: 'white', paddingTop: 12, paddingBottom: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#f4f4f5' }}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
           <Ionicons name="arrow-back" size={22} color="#09090b" />
         </TouchableOpacity>
@@ -98,13 +132,14 @@ export default function BookingDetailScreen() {
             </Text>
           )}
         </View>
-        {booking && (
-          <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: (STATUS_COLORS[booking.status] ?? { bg: '#f4f4f5' }).bg }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: (STATUS_COLORS[booking.status] ?? { text: '#71717a' }).text }}>
-              {booking.status.replace('_', ' ')}
-            </Text>
-          </View>
-        )}
+        {booking && (() => {
+          const meta = colors.status[normalizeStatus(booking.status)] ?? { label: booking.status, bg: '#f4f4f5', text: '#71717a' }
+          return (
+            <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: meta.bg }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: meta.text }}>{meta.label}</Text>
+            </View>
+          )
+        })()}
       </View>
 
       {isLoading && (
@@ -123,22 +158,15 @@ export default function BookingDetailScreen() {
       )}
 
       {booking && (
-        <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
           <Card title="Status">
-            {booking.status !== 'cancelled'
-              ? <StatusTimeline status={booking.status} />
-              : (
-                <View style={{ paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#fee2e2', borderRadius: 8 }}>
-                  <Text style={{ color: '#dc2626', fontWeight: '600' }}>This booking has been cancelled.</Text>
-                </View>
-              )
-            }
+            <StatusTimeline booking={booking} />
           </Card>
 
           <Card title="Booking Info">
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-              <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: (TYPE_COLORS[booking.booking_type] ?? { bg: '#f4f4f5' }).bg }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: (TYPE_COLORS[booking.booking_type] ?? { text: '#71717a' }).text }}>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: (colors.bookingType[booking.booking_type] ?? { bg: '#f4f4f5' }).bg }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: (colors.bookingType[booking.booking_type] ?? { text: '#71717a' }).text }}>
                   {booking.booking_type.replace('_', ' ')}
                 </Text>
               </View>

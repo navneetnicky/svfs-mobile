@@ -15,7 +15,7 @@ export function useBookingList(params: Omit<BookingListParams, 'company_id' | 'b
         branch_id: activeBranch?.id,
       }),
     enabled: !!activeBranch,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
   })
 }
 
@@ -24,7 +24,7 @@ export function useBooking(id: string) {
     queryKey: ['bookings', id],
     queryFn: () => bookingService.getById(id),
     enabled: !!id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
   })
 }
 

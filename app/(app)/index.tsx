@@ -3,12 +3,14 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   ActivityIndicator, Modal, Pressable,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks'
 import { logout } from '@/src/store/authSlice'
 import { setActiveBranch, type WorkspaceBranch } from '@/src/store/workspaceSlice'
 import { useBranches } from '@/src/hooks/useBranches'
+import { useBookingList } from '@/src/hooks/useBookings'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -154,6 +156,7 @@ function MetricCard({ label, value, iconName, iconLib = 'ion', iconBg, iconColor
 
 export default function HomeScreen() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { top } = useSafeAreaInsets()
 
   const router       = useRouter()
   const dispatch     = useAppDispatch()
@@ -179,14 +182,25 @@ export default function HomeScreen() {
     dispatch(setActiveBranch(b))
   }
 
-  const loading = false
-  const stats = { monthRevenue: 0, todayBookings: 0, inTransit: 0, challansReceived: 0, totalLRs: 0 }
-  const recentBookings: {
-    id: string; lr_number: string; sender_name: string
-    receiver_name: string; to_city: string; grand_total: number; booked_at: string
-  }[] = []
+  const now        = new Date()
+  const todayStr   = now.toISOString().split('T')[0]
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+  const month      = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
-  const month = new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+  const { data: recentData,  isLoading: loadingRecent  } = useBookingList({ limit: 5 })
+  const { data: todayData,   isLoading: loadingToday   } = useBookingList({ start_date: todayStr,   end_date: todayStr, limit: 1 })
+  const { data: monthData,   isLoading: loadingMonth   } = useBookingList({ start_date: monthStart, end_date: todayStr, limit: 200 })
+  const { data: transitData, isLoading: loadingTransit } = useBookingList({ status: 'IN_TRANSIT', limit: 1 })
+
+  const loading      = loadingRecent || loadingToday || loadingMonth || loadingTransit
+  const recentBookings = recentData?.data ?? []
+  const stats = {
+    todayBookings:    todayData?.total  ?? 0,
+    inTransit:        transitData?.total ?? 0,
+    totalLRs:         monthData?.total  ?? 0,
+    monthRevenue:     monthData?.data.reduce((sum, b) => sum + (Number(b.grand_total) || 0), 0) ?? 0,
+    challansReceived: 0,
+  }
 
   return (
     <>
@@ -198,8 +212,8 @@ export default function HomeScreen() {
 
         {/* ── Header ── */}
         <View
-          className="bg-blue-600 px-4 pt-14 pb-20"
-          style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }}
+          className="bg-blue-600 px-4 pb-20"
+          style={{ borderBottomLeftRadius: 32, borderBottomRightRadius: 32, marginTop: -top, paddingTop: top + 16 }}
         >
           <View className="flex-row items-center justify-between mb-5">
             <View className="flex-row items-center gap-x-2">
@@ -291,7 +305,7 @@ export default function HomeScreen() {
               <Text className="text-sm font-bold text-zinc-900">Recent Bookings</Text>
               <Text className="text-xs text-zinc-400 mt-0.5">Latest LR entries</Text>
             </View>
-            <TouchableOpacity className="bg-blue-50 px-3 py-1.5 rounded-full">
+            <TouchableOpacity onPress={() => router.push('/(app)/daily')} className="bg-blue-50 px-3 py-1.5 rounded-full">
               <Text className="text-xs font-semibold text-blue-600">View all</Text>
             </TouchableOpacity>
           </View>
@@ -314,32 +328,33 @@ export default function HomeScreen() {
             recentBookings.map((b, i) => (
               <TouchableOpacity
                 key={b.id}
+                onPress={() => router.push(`/booking/${b.id}`)}
                 activeOpacity={0.7}
-                className={`flex-row items-center px-4 py-3 gap-x-3 ${i < recentBookings.length - 1 ? 'border-b border-zinc-100' : ''}`}
+                className={`px-4 py-3 ${i < recentBookings.length - 1 ? 'border-b border-zinc-100' : ''}`}
               >
-                <View className="h-10 w-10 rounded-xl bg-blue-50 items-center justify-center">
-                  <MaterialCommunityIcons name="file-document-outline" size={18} color="#2563eb" />
-                </View>
-                <View className="flex-1">
-                  <View className="flex-row items-center gap-x-2">
-                    <View className="bg-blue-50 px-2 py-0.5 rounded-md">
-                      <Text className="text-[10px] font-black text-blue-600 font-mono">{b.lr_number}</Text>
-                    </View>
-                    <Text className="text-xs text-zinc-400">{b.to_city}</Text>
-                  </View>
-                  <Text className="text-sm font-medium text-zinc-900 mt-1" numberOfLines={1}>
-                    {b.sender_name} → {b.receiver_name}
+                {/* Row 1: LR number + amount */}
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-xs font-black text-blue-600 tracking-wide">{b.lr_number}</Text>
+                  <Text className="text-sm font-black text-zinc-900 tabular-nums">
+                    ₹{Number(b.grand_total).toLocaleString('en-IN')}
                   </Text>
-                  <Text className="text-xs text-zinc-400 mt-0.5">
+                </View>
+                {/* Row 2: Sender → Receiver */}
+                <Text className="text-sm font-medium text-zinc-800 mb-1.5" numberOfLines={1}>
+                  {b.sender_name} <Text className="text-zinc-400">→</Text> {b.receiver_name}
+                </Text>
+                {/* Row 3: City · Date · Status */}
+                <View className="flex-row items-center gap-x-2">
+                  <Text className="text-xs text-zinc-400">{b.to_city}</Text>
+                  <Text className="text-zinc-300">·</Text>
+                  <Text className="text-xs text-zinc-400">
                     {new Date(b.booked_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                   </Text>
-                </View>
-                <View className="items-end gap-y-1">
-                  <Text className="text-sm font-black text-emerald-600 tabular-nums">
-                    ₹{b.grand_total.toLocaleString('en-IN')}
-                  </Text>
-                  <View className="bg-emerald-50 px-2 py-0.5 rounded-full">
-                    <Text className="text-[10px] font-semibold text-emerald-600">Booked</Text>
+                  <Text className="text-zinc-300">·</Text>
+                  <View className="bg-zinc-100 px-2 py-0.5 rounded-full">
+                    <Text className="text-[10px] font-semibold text-zinc-500">
+                      {b.status.replace(/_/g, ' ')}
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>
