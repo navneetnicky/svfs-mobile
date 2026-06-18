@@ -11,6 +11,7 @@ import { logout } from '@/src/store/authSlice'
 import { setActiveBranch, type WorkspaceBranch } from '@/src/store/workspaceSlice'
 import { useBranches } from '@/src/hooks/useBranches'
 import { useBookingList } from '@/src/hooks/useBookings'
+import { useChallanList } from '@/src/hooks/useChallans'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -187,19 +188,20 @@ export default function HomeScreen() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
   const month      = now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
 
-  const { data: recentData, isLoading: loadingRecent } = useBookingList({ limit: 5 })
-  const { data: todayData,  isLoading: loadingToday  } = useBookingList({ start_date: todayStr,   end_date: todayStr, limit: 1 })
-  const { data: allData,    isLoading: loadingAll    } = useBookingList({ limit: 200 })
-  const { data: monthData,  isLoading: loadingMonth  } = useBookingList({ start_date: monthStart, end_date: todayStr, limit: 200 })
+  const { data: recentData,   isLoading: loadingRecent   } = useBookingList({ limit: 5 })
+  const { data: todayData,    isLoading: loadingToday    } = useBookingList({ start_date: todayStr,   end_date: todayStr, limit: 1 })
+  const { data: allData,      isLoading: loadingAll      } = useBookingList({ limit: 200 })
+  const { data: monthData,    isLoading: loadingMonth    } = useBookingList({ start_date: monthStart, end_date: todayStr, limit: 200 })
+  const { data: challanData,  isLoading: loadingChallan  } = useChallanList({ to_branch_id: activeBranch?.id, status: 'received' })
 
-  const loading        = loadingRecent || loadingToday || loadingAll || loadingMonth
+  const loading        = loadingRecent || loadingToday || loadingAll || loadingMonth || loadingChallan
   const recentBookings = recentData?.data ?? []
   const stats = {
     todayBookings:    todayData?.total ?? 0,
     inTransit:        (allData?.data ?? []).filter(b => b.in_transit_at && !b.delivered_at).length,
     totalLRs:         monthData?.total ?? 0,
     monthRevenue:     monthData?.data.reduce((sum, b) => sum + (Number(b.grand_total) || 0), 0) ?? 0,
-    challansReceived: 0,
+    challansReceived: challanData?.total ?? 0,
   }
 
   return (
