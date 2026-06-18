@@ -1,0 +1,132 @@
+import { StyleSheet } from 'react-native'
+import { SW } from './constants'
+
+export const s = StyleSheet.create({
+  root: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  backdrop: {
+    backgroundColor: 'rgba(6, 20, 36, 0.90)',
+  },
+  card: {
+    width: SW - 44,
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 28 },
+    shadowOpacity: 0.45,
+    shadowRadius: 48,
+    elevation: 28,
+  },
+  header: {
+    paddingTop: 28,
+    paddingBottom: 22,
+    alignItems: 'center',
+    gap: 12,
+  },
+  badge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.32)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerLabel: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 2.2,
+    textTransform: 'uppercase',
+  },
+  perfRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f9ff',
+  },
+  perfHole: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#f0f9ff',
+    marginLeft: -11,
+  },
+  perfLine: {
+    flex: 1,
+    borderTopWidth: 1.5,
+    borderTopColor: '#bae6fd',
+    borderStyle: 'dashed',
+    marginHorizontal: 6,
+  },
+  stampZone: {
+    backgroundColor: '#f8fafc',
+    paddingTop: 36,
+    paddingBottom: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  burstAnchor: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stamp: {
+    borderWidth: 3.5,
+    borderRadius: 5,
+    paddingHorizontal: 20,
+    paddingVertical: 7,
+  },
+  stampText: {
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: 7,
+  },
+  refRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    paddingBottom: 24,
+  },
+  refLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+    letterSpacing: 1,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  refNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0c2d3c',
+    letterSpacing: 1,
+    fontFamily: 'monospace',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#e0f2fe',
+    marginHorizontal: 20,
+  },
+  btnWrap: {
+    padding: 20,
+  },
+  btn: {
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  btnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+})

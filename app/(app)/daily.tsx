@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   View, Text, TouchableOpacity, FlatList, ActivityIndicator,
   TextInput, Platform, Modal, Pressable,
+  ScrollView, useWindowDimensions, type NativeSyntheticEvent, type NativeScrollEvent,
 } from 'react-native'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { Ionicons } from '@expo/vector-icons'
@@ -9,7 +10,10 @@ import { router } from 'expo-router'
 import { TopTabBar } from '@/src/components/TopTabBar'
 import { WipPlaceholder } from '@/src/components/WipPlaceholder'
 import { BookingCard } from '@/src/components/BookingCard'
+import { ChallanCard } from '@/src/components/challan/ChallanCard'
 import { useBookingList } from '@hooks/useBookings'
+import { useChallanList } from '@hooks/useChallans'
+import { useAppSelector } from '@/src/store/hooks'
 import { useRefreshControl } from '@hooks/useRefreshControl'
 import { colors, radius, typography } from '@/src/theme'
 
@@ -225,6 +229,165 @@ function BookingList() {
   )
 }
 
+// ─── ChallanList ──────────────────────────────────────────────────────────────
+
+const CHALLAN_SUBTABS = ['Our Challan', 'We Received'] as const
+
+function ChallanPage({ isOurs, width }: { isOurs: boolean; width: number }) {
+  const activeBranch = useAppSelector(s => s.workspace.activeBranch)
+  const [search, setSearch] = useState('')
+
+  const { data, isLoading, isRefetching, error, refetch } = useChallanList(
+    isOurs
+      ? { branch_id: activeBranch?.id, search: search || undefined }
+      : { to_branch_id: activeBranch?.id, search: search || undefined }
+  )
+
+  return (
+    <View style={{ width, flex: 1 }}>
+      {/* Search */}
+      <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+        <View style={{
+          flexDirection: 'row', alignItems: 'center',
+          backgroundColor: colors.card, borderRadius: radius.lg,
+          borderWidth: 1, borderColor: colors.border,
+          paddingHorizontal: 12, gap: 8,
+        }}>
+          <Ionicons name="search-outline" size={16} color={colors.subtleFg} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search challan no, truck..."
+            placeholderTextColor={colors.subtleFg}
+            style={{ flex: 1, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={16} color={colors.subtleFg} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {isLoading && (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
+
+      {error && (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <Ionicons name="alert-circle-outline" size={40} color={colors.destructive} />
+          <Text style={{ color: colors.destructive, marginTop: 8, textAlign: 'center' }}>Failed to load challans.</Text>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            style={{ marginTop: 12, paddingHorizontal: 20, paddingVertical: 8, backgroundColor: colors.primary, borderRadius: radius.full }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!isLoading && !error && (
+        <FlatList
+          data={data?.data ?? []}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => <ChallanCard challan={item} activeBranchId={activeBranch?.id} />}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100 }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          refreshControl={useRefreshControl(isRefetching, refetch)}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 60 }}>
+              <Ionicons name="document-text-outline" size={48} color={colors.border} />
+              <Text style={{ color: colors.subtleFg, fontSize: 15, marginTop: 12, fontWeight: '500' }}>No challans found</Text>
+              <Text style={{ color: colors.subtleFg, fontSize: 13, marginTop: 4, opacity: 0.6 }}>
+                {search ? 'Try a different search term' : isOurs ? 'No challans dispatched from this branch' : 'No challans received at this branch'}
+              </Text>
+            </View>
+          }
+        />
+      )}
+    </View>
+  )
+}
+
+function ChallanList() {
+  const { width } = useWindowDimensions()
+  const pagerRef = useRef<ScrollView>(null)
+  const [tabIndex, setTabIndex] = useState(0)
+
+  function goToTab(i: number) {
+    setTabIndex(i)
+    pagerRef.current?.scrollTo({ x: i * width, animated: true })
+  }
+
+  function onScrollEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const i = Math.round(e.nativeEvent.contentOffset.x / width)
+    setTabIndex(i)
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Sub-tabs */}
+      <View style={{
+        flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border,
+        backgroundColor: colors.card,
+      }}>
+        {CHALLAN_SUBTABS.map((tab, i) => (
+          <TouchableOpacity
+            key={tab}
+            onPress={() => goToTab(i)}
+            style={{
+              flex: 1, paddingVertical: 10, alignItems: 'center',
+              borderBottomWidth: 2,
+              borderBottomColor: tabIndex === i ? colors.primary : 'transparent',
+            }}
+          >
+            <Text style={{
+              fontSize: typography.size.sm,
+              fontWeight: tabIndex === i ? typography.weight.bold : typography.weight.normal,
+              color: tabIndex === i ? colors.primary : colors.mutedFg,
+            }}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Swipeable pages */}
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={onScrollEnd}
+        style={{ flex: 1 }}
+      >
+        <ChallanPage isOurs={true}  width={width} />
+        <ChallanPage isOurs={false} width={width} />
+      </ScrollView>
+
+      {/* FAB — only on Our Challan tab */}
+      {tabIndex === 0 && (
+        <TouchableOpacity
+          onPress={() => router.push('/challan/create')}
+          style={{
+            position: 'absolute', bottom: 24, right: 20,
+            width: 52, height: 52, borderRadius: 26,
+            backgroundColor: colors.primary,
+            alignItems: 'center', justifyContent: 'center',
+            shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
+          }}
+        >
+          <Ionicons name="add" size={26} color="#fff" />
+        </TouchableOpacity>
+      )}
+    </View>
+  )
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function DailyScreen() {
@@ -246,7 +409,9 @@ export default function DailyScreen() {
         </View>
       </View>
       <TopTabBar tabs={[...TABS]} active={active} onSelect={t => setActive(t as Tab)} />
-      {active === 'Booking' ? <BookingList /> : <WipPlaceholder label={active} />}
+      {active === 'Booking'           ? <BookingList />  :
+       active === 'Challan Register'  ? <ChallanList />  :
+       <WipPlaceholder label={active} />}
     </View>
   )
 }
