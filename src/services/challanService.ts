@@ -40,6 +40,11 @@ export const challanService = {
     await api.delete(`/challans/${id}`)
   },
 
+  transfer: async (id: string, to_branch_id: string): Promise<ChallanRecord> => {
+    const res = await api.put(`/challans/${id}/transfer`, { to_branch_id })
+    return res.data.data ?? res.data
+  },
+
   submitReview: async (id: string, payload: ChallanReviewPayload): Promise<ChallanRecord> => {
     const res = await api.post(`/challans/${id}/review`, payload)
     return res.data.data ?? res.data

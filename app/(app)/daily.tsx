@@ -292,7 +292,7 @@ function ChallanPage({ isOurs, width }: { isOurs: boolean; width: number }) {
         <FlatList
           data={data?.data ?? []}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => <ChallanCard challan={item} />}
+          renderItem={({ item }) => <ChallanCard challan={item} activeBranchId={activeBranch?.id} />}
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled

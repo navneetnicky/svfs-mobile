@@ -86,6 +86,17 @@ export function useDeleteChallan() {
   })
 }
 
+export function useTransferChallan(id: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (to_branch_id: string) => challanService.transfer(id, to_branch_id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['challans'] })
+    },
+  })
+}
+
 export function useReviewChallan(id: string) {
   const queryClient = useQueryClient()
   const activeBranch = useAppSelector(s => s.workspace.activeBranch)

@@ -23,7 +23,7 @@ import { GstinField } from '@/src/components/form/GstinField'
 import { ItemsEditor, emptyItem, type ItemDraft } from '@/src/components/form/ItemsEditor'
 import { SenderSection, emptySenderExtra, type SenderExtra } from '@/src/components/form/SenderSection'
 import { ReceiverSection, emptyReceiverExtra, type ReceiverExtra } from '@/src/components/form/ReceiverSection'
-import { BookingSuccessOverlay } from '@/src/components/BookingSuccessOverlay'
+import { BookingSuccessOverlay } from '@/src/components/SuccessOverlay'
 
 const STEPS = ['Booking', 'Sender', 'Receiver', 'Items', 'Charges']
 

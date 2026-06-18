@@ -6,7 +6,7 @@ import { typography } from '@/src/theme'
 type Props = { status: ChallanStatus }
 
 const CONFIG = {
-  dispatched: { label: 'Dispatched', icon: 'truck-outline' as const, bg: '#e0f2fe', text: '#075985', icon_color: '#075985' },
+  dispatched: { label: 'Dispatched', icon: 'navigate-outline' as const, bg: '#e0f2fe', text: '#075985', icon_color: '#075985' },
   received:   { label: 'Received',   icon: 'checkmark-circle-outline' as const, bg: '#d1fae5', text: '#065f46', icon_color: '#10b981' },
 }
 

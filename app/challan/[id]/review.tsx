@@ -7,6 +7,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { useChallan, useReviewChallan } from '@hooks/useChallans'
+import { ChallanReceivedOverlay } from '@/src/components/SuccessOverlay'
 import type { ReviewStatus, ChallanLRRecord } from '@/src/types/challan'
 import { colors, radius, typography } from '@/src/theme'
 
@@ -161,6 +162,7 @@ export default function ChallanReviewScreen() {
   const { mutate: submitReview, isPending } = useReviewChallan(id)
 
   const [drafts, setDrafts] = useState<Record<number, LRDraft>>({})
+  const [showSuccess, setShowSuccess] = useState(false)
 
   function getDraft(lr: ChallanLRRecord): LRDraft {
     return drafts[lr.id] ?? { challan_lr_id: lr.id }
@@ -171,6 +173,15 @@ export default function ChallanReviewScreen() {
       ...prev,
       [lrId]: { ...prev[lrId], challan_lr_id: lrId, ...update },
     }))
+  }
+
+  function markAllReceived() {
+    if (!challan) return
+    const next: Record<number, LRDraft> = {}
+    for (const lr of challan.lrs) {
+      next[lr.id] = { challan_lr_id: lr.id, status: 'received' }
+    }
+    setDrafts(next)
   }
 
   const counts = useMemo(() => {
@@ -200,11 +211,7 @@ export default function ChallanReviewScreen() {
     })
 
     submitReview({ lrs }, {
-      onSuccess: () => {
-        Alert.alert('Done', 'Challan received successfully.', [
-          { text: 'OK', onPress: () => router.back() },
-        ])
-      },
+      onSuccess: () => setShowSuccess(true),
       onError: () => {
         Alert.alert('Error', 'Failed to submit review. Please try again.')
       },
@@ -256,10 +263,10 @@ export default function ChallanReviewScreen() {
               </Text>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 34 }}>
-            <Text style={{ fontSize: typography.size.sm, color: colors.mutedFg }}>{challan.from_branch?.branch_name ?? '—'}</Text>
-            <Ionicons name="arrow-forward" size={12} color={colors.subtleFg} />
-            <Text style={{ fontSize: typography.size.sm, color: colors.foreground, fontWeight: typography.weight.semibold }}>{toLabel}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingLeft: 34 }}>
+            <Text style={{ fontSize: typography.size.sm, color: colors.mutedFg, flex: 1 }}>{challan.from_branch?.branch_name ?? '—'}</Text>
+            <Ionicons name="arrow-forward" size={12} color={colors.subtleFg} style={{ marginTop: 2 }} />
+            <Text style={{ fontSize: typography.size.sm, color: colors.foreground, fontWeight: typography.weight.semibold, flex: 1, textAlign: 'right' }}>{toLabel}</Text>
           </View>
         </View>
 
@@ -287,6 +294,24 @@ export default function ChallanReviewScreen() {
             </View>
           ))}
         </View>
+
+        {/* Mark all received shortcut */}
+        {counts.pending > 0 && (
+          <TouchableOpacity
+            onPress={markAllReceived}
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+              paddingVertical: 10,
+              backgroundColor: '#f0fdf4',
+              borderBottomWidth: 1, borderBottomColor: '#bbf7d0',
+            }}
+          >
+            <Ionicons name="checkmark-done-outline" size={15} color="#16a34a" />
+            <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: '#16a34a' }}>
+              Mark All Received
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
@@ -334,6 +359,13 @@ export default function ChallanReviewScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {showSuccess && challan && (
+        <ChallanReceivedOverlay
+          challanNo={challan.challan_no}
+          onDone={() => router.back()}
+        />
+      )}
     </KeyboardAvoidingView>
   )
 }

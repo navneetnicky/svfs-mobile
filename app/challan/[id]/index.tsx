@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as Clipboard from 'expo-clipboard'
 import { useChallan, useDeleteChallan } from '@hooks/useChallans'
 import { useAppSelector } from '@/src/store/hooks'
 import { ChallanStatusBadge } from '@/src/components/challan/ChallanStatusBadge'
@@ -43,8 +44,10 @@ export default function ChallanDetailScreen() {
   const activeBranch = useAppSelector(s => s.workspace.activeBranch)
   const refreshControl = useRefreshControl(isRefetching, refetch)
 
-  const canEdit     = challan?.status === 'dispatched'
-  const canReceive  = challan?.status === 'dispatched' && challan?.to_branch_id === activeBranch?.id
+  const dispatched  = challan?.status === 'dispatched'
+  const canEdit     = dispatched && challan?.from_branch_id === activeBranch?.id
+  const canReceive  = dispatched && challan?.to_branch_id === activeBranch?.id
+  const canTransfer = dispatched && challan?.from_branch_id === activeBranch?.id
 
   function confirmDelete() {
     Alert.alert(
@@ -101,10 +104,10 @@ export default function ChallanDetailScreen() {
           </Text>
           <ChallanStatusBadge status={challan.status} />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 34 }}>
-          <Text style={{ fontSize: typography.size.sm, color: colors.mutedFg }}>{challan.from_branch?.branch_name ?? '—'}</Text>
-          <Ionicons name="arrow-forward" size={12} color={colors.subtleFg} />
-          <Text style={{ fontSize: typography.size.sm, color: colors.foreground, fontWeight: typography.weight.semibold }}>{toLabel}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingLeft: 34 }}>
+          <Text style={{ fontSize: typography.size.sm, color: colors.mutedFg, flex: 1 }}>{challan.from_branch?.branch_name ?? '—'}</Text>
+          <Ionicons name="arrow-forward" size={12} color={colors.subtleFg} style={{ marginTop: 2 }} />
+          <Text style={{ fontSize: typography.size.sm, color: colors.foreground, fontWeight: typography.weight.semibold, flex: 1, textAlign: 'right' }}>{toLabel}</Text>
         </View>
       </View>
 
@@ -171,10 +174,18 @@ export default function ChallanDetailScreen() {
               borderBottomWidth: i < challan.lrs.length - 1 ? 1 : 0,
               borderBottomColor: colors.border,
             }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.primary, fontFamily: 'monospace' }}>
-                  {lr.booking.lr_number}
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.bold, color: colors.primary, fontFamily: 'monospace' }}>
+                    {lr.booking.lr_number}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => Clipboard.setStringAsync(lr.booking.lr_number)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="copy-outline" size={13} color={colors.subtleFg} />
+                  </TouchableOpacity>
+                </View>
                 <Text style={{ fontSize: typography.size.sm, fontWeight: typography.weight.semibold, color: colors.foreground }}>
                   ₹{Number(lr.booking.grand_total || 0).toLocaleString('en-IN')}
                 </Text>
@@ -208,7 +219,7 @@ export default function ChallanDetailScreen() {
       </ScrollView>
 
       {/* Action bar */}
-      {(canEdit || canReceive) && (
+      {(canEdit || canReceive || canTransfer) && (
         <View style={{
           backgroundColor: colors.card,
           borderTopWidth: 1, borderTopColor: colors.border,
@@ -254,6 +265,20 @@ export default function ChallanDetailScreen() {
             >
               <Ionicons name="checkmark-done-outline" size={15} color="#fff" />
               <Text style={{ color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.sm }}>Receive Challan</Text>
+            </TouchableOpacity>
+          )}
+          {canTransfer && (
+            <TouchableOpacity
+              onPress={() => router.push(`/challan/${id}/transfer`)}
+              style={{
+                flex: 1, backgroundColor: '#d97706',
+                borderRadius: radius.lg, paddingVertical: 12,
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="swap-horizontal-outline" size={15} color="#fff" />
+              <Text style={{ color: '#fff', fontWeight: typography.weight.bold, fontSize: typography.size.sm }}>Transfer Challan</Text>
             </TouchableOpacity>
           )}
         </View>

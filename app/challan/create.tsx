@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Alert,
+  KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -10,8 +10,10 @@ import { useCreateChallan } from '@hooks/useChallans'
 import { useBranches } from '@hooks/useBranches'
 import { FormField } from '@/src/components/form/FormField'
 import { TruckPicker } from '@/src/components/form/TruckPicker'
+import { DriverCombobox } from '@/src/components/form/DriverCombobox'
 import { Autocomplete } from '@/src/components/form/Autocomplete'
 import { LRPickerModal } from '@/src/components/challan/LRPickerModal'
+import { ChallanSuccessOverlay } from '@/src/components/SuccessOverlay'
 import type { ChallanLRRow, TruckRecord } from '@/src/types/challan'
 import type { BranchRecord } from '@/src/services/branchService'
 import { colors, radius, typography } from '@/src/theme'
@@ -52,6 +54,7 @@ export default function ChallanCreateScreen() {
   // Truck & driver
   const [truckId,       setTruckId]       = useState('')
   const [truckNumber,   setTruckNumber]   = useState('')
+  const [selectedTruck, setSelectedTruck] = useState<TruckRecord | null>(null)
   const [driverName,    setDriverName]    = useState('')
   const [driverMobile,  setDriverMobile]  = useState('')
   const [driverLicence, setDriverLicence] = useState('')
@@ -63,6 +66,7 @@ export default function ChallanCreateScreen() {
   const [lrPickerOpen, setLrPickerOpen] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
+  const [successChallanNo, setSuccessChallanNo] = useState<string | null>(null)
 
   const otherBranches = allBranches.filter(b => b.id !== activeBranch?.id)
 
@@ -72,6 +76,7 @@ export default function ChallanCreateScreen() {
   function handleTruckSelect(truck: TruckRecord) {
     setTruckId(truck.id)
     setTruckNumber(truck.truck_number)
+    setSelectedTruck(truck)
   }
 
   function handleBranchSelect(branch: BranchRecord) {
@@ -105,7 +110,7 @@ export default function ChallanCreateScreen() {
       remarks:       remarks.trim() || undefined,
       booking_ids:   selectedLRs.map(lr => lr.id),
     }, {
-      onSuccess: () => router.back(),
+      onSuccess: (result) => setSuccessChallanNo(result.challan_no),
       onError:   () => setError('Failed to create challan. Please try again.'),
     })
   }
@@ -216,8 +221,8 @@ export default function ChallanCreateScreen() {
           {/* Truck & Driver */}
           <SectionCard>
             <SectionTitle title="Truck & Driver" />
-            <TruckPicker value={truckNumber} onSelect={handleTruckSelect} required />
-            <FormField label="Driver Name" value={driverName} onChangeText={setDriverName} placeholder="Full name" required />
+            <TruckPicker value={truckNumber} selectedTruck={selectedTruck} onSelect={handleTruckSelect} required />
+            <DriverCombobox value={driverName} onChange={setDriverName} required />
             <FormField label="Mobile" value={driverMobile} onChangeText={setDriverMobile} placeholder="10-digit mobile" keyboardType="phone-pad" />
             <FormField
               label="Licence No."
@@ -326,6 +331,13 @@ export default function ChallanCreateScreen() {
           onClose={() => setLrPickerOpen(false)}
         />
       </View>
+
+      {successChallanNo != null && (
+        <ChallanSuccessOverlay
+          challanNo={successChallanNo}
+          onDone={() => router.back()}
+        />
+      )}
     </KeyboardAvoidingView>
   )
 }
